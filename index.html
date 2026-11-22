@@ -902,7 +902,7 @@ function matchCliente(title) {
 const iaKey = ev => ev.title + '|' + ev.start;
 function rdvInfo(ev) {
   const d = new Date(ev.start), ia = (S.ia || {})[iaKey(ev)] || null;
-  let c = matchCliente(ev.title);
+  let c = (ia && ia.clienteConnue === false) ? null : matchCliente(ev.title);
   if (!c && ia && ia.cliente) { const n = ia.cliente.trim().toLowerCase(); c = S.data.clientes.find(x => x.nom.trim().toLowerCase() === n) || null; }
   const pr = c ? S.data.prestas.find(p => p.cliente_id === c.id && iso(new Date(p.date_prestation)) === iso(d)) : null;
   const pays = pr ? (S.pay[pr.id] || []) : [];
