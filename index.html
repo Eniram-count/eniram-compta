@@ -118,6 +118,50 @@ dialog footer{padding:14px 22px 22px;display:flex;gap:10px;flex-wrap:wrap}
 .toast.bad{background:var(--alerte)}
 @media(min-width:720px){.toast{bottom:30px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ===== v2 : deux univers ===== */
+:root{--btn-h:#E193AA; --s1:#A04A65; --s2:#B8862F}
+body[data-p="perso"]{
+  --creme:#F4F2EA; --creme2:#E7E4D8; --rose:#A9C0A8; --rose-doux:#E0E9DC; --rose-fonce:#3E6A52;
+  --brun:#26332B; --brun-doux:#566559; --ligne:#DAD7CA; --champ:#FBFAF6; --ok:#2F6B49; --alerte:#A8402F;
+  --btn-h:#93AE93; --s1:#3E6A52; --s2:#B8862F;
+}
+.btn:hover{background:var(--btn-h)}
+.pbtn{background:none;border:0;padding:0;cursor:pointer;text-align:left;color:inherit;display:flex;align-items:center;gap:12px;border-radius:14px}
+.chev{font-style:normal;color:var(--brun-doux);font-size:.9rem;margin-left:-2px}
+.alt{width:40px;height:40px;border-radius:50%;border:2px solid var(--creme);box-shadow:0 0 0 1.5px var(--ligne);display:grid;place-items:center;
+  font-family:var(--serif);font-weight:600;cursor:pointer;font-size:1rem;padding:0}
+.av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-weight:600;font-size:1.2rem;flex:none}
+.prof .item{justify-content:flex-start;gap:14px}
+.prof .item .ok{margin-left:auto;font-size:1.3rem}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.kpi{background:var(--champ);border:1px solid var(--ligne);border-radius:20px;padding:14px 16px;min-width:0}
+.kpi .kv{font-family:var(--serif);font-size:1.55rem;font-weight:500;line-height:1.15;margin-top:2px;overflow-wrap:anywhere}
+.kpi small{display:block;margin-top:4px;color:var(--brun-doux);font-size:.8rem;line-height:1.3}
+.delta{font-weight:600}
+small.delta.ok{color:var(--ok)} small.delta.neg{color:var(--alerte)}
+.hero .delta{display:inline-block;margin-top:-6px;margin-bottom:10px;font-size:.92rem}
+.hb{margin:12px 0}
+.hb .row2{display:flex;justify-content:space-between;gap:12px}
+.track{height:6px;border-radius:999px;background:var(--creme2);margin-top:6px;overflow:hidden}
+.track i{display:block;height:100%;background:var(--s1);border-radius:999px}
+.chart{width:100%;height:auto;display:block;margin-top:8px}
+.chart text{font-family:var(--sans);fill:var(--brun-doux);font-size:12px}
+.chart .gl{stroke:var(--ligne);stroke-width:1}
+.chart .bar path{transition:opacity .15s}
+.chart .bar:hover path{opacity:.7}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:.88rem;color:var(--brun-doux)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+details.tv{margin-top:8px;font-size:.88rem;color:var(--brun-doux)}
+details.tv summary{cursor:pointer;padding:4px 0}
+.tbl{width:100%;border-collapse:collapse;margin-top:6px}
+.tbl th,.tbl td{text-align:right;padding:5px 4px;border-bottom:1px solid var(--ligne)}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tag{display:inline-block;font-size:.72rem;letter-spacing:.04em;background:var(--rose-doux);color:var(--brun);border-radius:999px;padding:1px 9px;margin-left:8px;vertical-align:2px}
+.note{background:var(--rose-doux);border-radius:16px;padding:14px 16px;font-size:.92rem}
+.mn{display:flex;justify-content:center;margin-bottom:16px}
+.pos{color:var(--ok)}
+
 </style>
 </head>
 <body>
@@ -162,13 +206,35 @@ function weekRange() {
   return [iso(s), addDays(iso(s), 6)];
 }
 
-const S = {tab:'accueil', monthOffset:0, search:'', data:null, pay:{}, cmap:{}, pmap:{}};
 const app = $('#app');
 
 function toast(msg, bad) {
   const t = $('#toast'); t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : ''); t.hidden = false;
   clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3200);
 }
+
+
+/* ---------- Constantes v2 ---------- */
+const CATS_PRO = {fournitures:'Fournitures', investissement:'Investissement', pub:'Pub', charge_variable:'Charge variable', autre:'Autre'};
+const CATS_PERSO = ['Courses', 'Sorties et loisirs', 'Shopping', 'Santé et beauté', 'Transport', 'Maison', 'Autre'];
+const COMPTE_TYPES = {banque:'Banque', revolut:'Revolut', especes:'Espèces', autre:'Autre'};
+const PROFILES = {
+  eniram:{nom:'eniram.beauty', mono:'EB', bg:'#E9A8BB', fg:'#5B3A3F', theme:'#FAF1EE', word:['ENIRAM', 'BEAUTY'], sous:'L\'activité'},
+  perso:{nom:'perso', mono:'P', bg:'#A9C0A8', fg:'#26332B', theme:'#F4F2EA', word:['PERSO', 'MES COMPTES'], sous:'L\'argent perso'}
+};
+const NAV = {
+  eniram:[['accueil', 'Accueil'], ['prestations', 'Prestations'], ['clientes', 'Clientes'], ['depenses', 'Dépenses'], ['plus', 'Réglages']],
+  perso:[['accueil', 'Accueil'], ['mouvements', 'Mouvements'], ['comptes', 'Comptes'], ['plus', 'Réglages']]
+};
+
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+const S = {profile: lsGet('eb_profile') === 'perso' ? 'perso' : 'eniram', tab:'accueil', monthOffset:0, search:'', data:null, pay:{}, cmap:{}, pmap:{}, first:null};
+
+const dloc = s => s.length <= 10 ? s : iso(new Date(s));
+const monthName = r => r[2].toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+const monthShort = r => r[2].toLocaleDateString('fr-FR', {month:'short'}).replace('.', '');
 
 /* ---------- Données ---------- */
 async function load() {
@@ -177,18 +243,110 @@ async function load() {
     sb.from('reglages').select('*').eq('id', 1).single(),
     t('clientes', ['nom', true]), t('produits', ['created_at', false]), t('prestations', ['date_prestation', false]),
     t('paiements', ['date_paiement', false]), t('depenses', ['date_depense', false]), t('prelevements_fixes', ['jour_du_mois', true]),
-    t('revenus_perso', ['date_revenu', false]), t('campagnes_pub', ['date_debut', false])
+    t('revenus_perso', ['date_revenu', false]), t('campagnes_pub', ['date_debut', false]), t('comptes', ['created_at', true])
   ]);
   const bad = res.find(r => r.error); if (bad) throw bad.error;
-  const [reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes] = res.map(r => r.data);
-  S.data = {reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes};
+  const [reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes] = res.map(r => r.data);
+  S.data = {reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes};
   S.pay = {}; paiements.forEach(p => (S.pay[p.prestation_id] ??= []).push(p));
   S.cmap = Object.fromEntries(clientes.map(c => [c.id, c]));
   S.pmap = Object.fromEntries(produits.map(p => [p.id, p]));
+  const dates = [...paiements.map(x => x.date_paiement), ...depenses.map(x => x.date_depense), ...revenus.map(x => x.date_revenu), ...prestas.map(x => dloc(x.date_prestation))];
+  S.first = (dates.length ? dates.reduce((a, b) => a < b ? a : b) : iso(new Date())).slice(0, 7) + '-01';
 }
-async function refresh() { try { await load(); render(); } catch (e) { toast(e.message || 'Erreur de chargement', true); } }
+async function refresh() {
+  try { await load(); render(); }
+  catch (e) {
+    const m = e.message || '';
+    if (/comptes|compte_id|univers|sous_categorie/.test(m)) {
+      app.innerHTML = '<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Une mise à jour est nécessaire</h1><p class="muted">Lance une fois le script « migration v2 » dans l\'éditeur SQL de Supabase, puis recharge cette page.</p></div>';
+    } else toast(m || 'Erreur de chargement', true);
+  }
+}
 const paid = p => sum(S.pay[p.id] || [], 'montant');
 
+/* ---------- Calculs : Eniram ---------- */
+const fixesApply = r => r[0] <= monthRange(0)[0] && r[0] >= S.first;
+function eniMonth(off) {
+  const r = monthRange(off), {paiements, depenses, prelevements, prestas} = S.data;
+  const pm = paiements.filter(x => inR(x.date_paiement, r));
+  const enc = sum(pm, 'montant'), urs = sum(pm, 'urssaf_montant');
+  const dpro = sum(depenses.filter(x => x.categorie !== 'perso' && inR(x.date_depense, r)), 'montant');
+  const fixes = fixesApply(r) ? sum(prelevements.filter(p => p.actif && p.univers === 'eniram'), 'montant') : 0;
+  const ps = prestas.filter(p => inR(dloc(p.date_prestation), r));
+  const net = enc - urs - dpro - fixes;
+  return {r, pm, enc, urs, dpro, fixes, net, ps, nb:ps.length, panier:ps.length ? sum(ps, 'montant_total') / ps.length : 0, marge:enc > 0 ? net / enc : null};
+}
+
+/* ---------- Calculs : Perso (le résultat Eniram y entre automatiquement) ---------- */
+function persoMonth(off) {
+  const eni = eniMonth(off), {revenus, depenses, prelevements} = S.data, r = eni.r;
+  const revAutres = revenus.filter(x => inR(x.date_revenu, r));
+  const autres = sum(revAutres, 'montant');
+  const revTot = eni.net + autres;
+  const dep = depenses.filter(x => x.categorie === 'perso' && inR(x.date_depense, r));
+  const depTot = sum(dep, 'montant');
+  const fixes = fixesApply(r) ? sum(prelevements.filter(p => p.actif && p.univers === 'perso'), 'montant') : 0;
+  const out = depTot + fixes, reste = revTot - out;
+  return {r, eni, revAutres, autres, revTot, dep, depTot, fixes, out, reste, epargne:revTot > 0 ? reste / revTot : null};
+}
+
+/* ---------- Calculs : Comptes ---------- */
+function soldeOf(c, r) {
+  const {paiements, depenses, revenus} = S.data, ok = (d) => !r || inR(d, r);
+  const inn = sum(paiements.filter(x => x.compte_id === c.id && ok(x.date_paiement)), 'montant') + sum(revenus.filter(x => x.compte_id === c.id && ok(x.date_revenu)), 'montant');
+  const out = sum(depenses.filter(x => x.compte_id === c.id && ok(x.date_depense)), 'montant');
+  return {inn, out, solde:(+c.solde_initial || 0) + inn - out};
+}
+function defaultCompte(moyen) {
+  const type = moyen === 'revolut' ? 'revolut' : moyen === 'especes' ? 'especes' : 'banque';
+  return (S.data.comptes.find(c => c.type === type) || {}).id || '';
+}
+const compteField = sel => f('Compte', `<select name="compte_id"><option value="">Aucun</option>${opts(S.data.comptes.map(c => [c.id, c.nom]), sel)}</select>`);
+
+/* ---------- Petits composants de lecture ---------- */
+function delta(cur, prev) {
+  if (!prev && !cur) return '';
+  if (!prev) return '<small class="muted">Rien le mois précédent</small>';
+  const d = (cur - prev) / Math.abs(prev) * 100, up = d >= 0, a = Math.abs(Math.round(d));
+  return `<small class="delta ${up ? 'ok' : 'neg'}">${up ? '▲ +' : '▼ −'}${a > 999 ? '&gt;999' : a} % vs mois précédent</small>`;
+}
+const kpi = (l, v, sub, cls = '') => `<div class="kpi"><p class="muted small">${l}</p><p class="kv num ${cls}">${v}</p>${sub || ''}</div>`;
+function hbars(items, fmtv = eur) {
+  const max = Math.max(0, ...items.map(i => i[1])) || 1;
+  return items.map(([l, v, s]) => `<div class="hb"><div class="row2"><span>${esc(l)}</span><span class="num">${fmtv(v)}${s ? `<small class="muted"> ${s}</small>` : ''}</span></div>
+    <div class="track"><i style="width:${Math.max(2, v / max * 100)}%"></i></div></div>`).join('');
+}
+function niceMax(m) {
+  const p = Math.pow(10, Math.floor(Math.log10(m)));
+  return [1, 2, 5, 10].map(k => k * p).find(v => v >= m) || m;
+}
+/* Barres verticales fines, 1 ou 2 séries, info-bulle au survol, tableau en dessous */
+function chartBars(labels, series, title) {
+  const W = 420, H = 220, pl = 48, pr = 8, pt = 16, pb = 28, iw = W - pl - pr, ih = H - pt - pb;
+  const max = niceMax(Math.max(1, ...series.flatMap(s => s.values.map(v => Math.max(0, v)))));
+  const y = v => pt + ih - Math.max(0, v) / max * ih;
+  const gw = iw / labels.length, n = series.length, bw = Math.min(22, gw * .5 / n), gap = 3;
+  const eur0 = v => Math.round(v).toLocaleString('fr-FR') + ' €';
+  let g = [0, .5, 1].map(k => `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y(max * k)}" y2="${y(max * k)}"/><text x="${pl - 8}" y="${y(max * k) + 4}" text-anchor="end">${eur0(max * k)}</text>`).join('');
+  labels.forEach((lab, i) => {
+    const cx = pl + gw * i + gw / 2, tot = n * bw + (n - 1) * gap;
+    const tip = `${lab} : ` + series.map(s => `${s.name} ${eur(s.values[i])}`).join(', ');
+    g += `<g class="bar"><title>${esc(tip)}</title><rect x="${pl + gw * i}" y="${pt}" width="${gw}" height="${ih}" fill="transparent"/>`;
+    series.forEach((s, k) => {
+      const v = Math.max(0, s.values[i]), h = v / max * ih, x = cx - tot / 2 + k * (bw + gap), yy = y(v), rr = Math.min(4, h);
+      if (h > 0.5) g += `<path fill="${s.color}" d="M${x},${yy + h}V${yy + rr}Q${x},${yy} ${x + Math.min(4, bw / 2)},${yy}H${x + bw - Math.min(4, bw / 2)}Q${x + bw},${yy} ${x + bw},${yy + rr}V${yy + h}Z"/>`;
+    });
+    g += `</g><text x="${cx}" y="${H - 8}" text-anchor="middle">${esc(lab)}</text>`;
+  });
+  if (n === 1) { const i = labels.length - 1, v = series[0].values[i]; if (v > 0) g += `<text x="${pl + gw * i + gw / 2}" y="${y(v) - 6}" text-anchor="middle" style="fill:var(--brun);font-weight:600">${eur0(v)}</text>`; }
+  const legend = n > 1 ? `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>` : '';
+  const table = `<details class="tv"><summary>Voir en tableau</summary><table class="tbl"><tr><th></th>${series.map(s => `<th>${esc(s.name)}</th>`).join('')}</tr>
+    ${labels.map((l, i) => `<tr><td>${esc(l)}</td>${series.map(s => `<td class="num">${eur(s.values[i])}</td>`).join('')}</tr>`).join('')}</table></details>`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">${g}</svg>${legend}${table}`;
+}
+const sixMonths = fn => { const offs = [-5, -4, -3, -2, -1, 0].map(k => S.monthOffset + k); return {labels:offs.map(o => monthShort(monthRange(o))), vals:offs.map(fn)}; };
+const monthNav = () => `<div class="mn"><div class="monthnav"><button data-act="month" data-d="-1" aria-label="Mois précédent">‹</button><span>${monthName(monthRange(S.monthOffset))}</span><button data-act="month" data-d="1" aria-label="Mois suivant">›</button></div></div>`;
 /* ---------- Fenêtre de saisie ---------- */
 function modal(title, body, onSubmit, label = 'Enregistrer') {
   const dlg = $('#dlg');
@@ -207,56 +365,6 @@ function modal(title, body, onSubmit, label = 'Enregistrer') {
 const f = (label, inner) => `<label>${label}${inner}</label>`;
 const opts = (pairs, sel) => pairs.map(([v, l]) => `<option value="${esc(v)}" ${String(v) === String(sel) ? 'selected' : ''}>${esc(l)}</option>`).join('');
 const optsObj = (o, sel) => opts(Object.entries(o), sel);
-
-/* ---------- Vues ---------- */
-const VIEWS = {accueil, prestations, clientes, depenses, plus};
-
-function accueil() {
-  const {reg, depenses, paiements, prelevements, prestas} = S.data;
-  const env = reg.enveloppe_periode === 'semaine' ? weekRange() : monthRange(0);
-  const spent = sum(depenses.filter(x => x.categorie === 'perso' && inR(x.date_depense, env)), 'montant');
-  const budget = +reg.enveloppe_montant || 0, left = budget - spent, pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0;
-  const per = reg.enveloppe_periode === 'semaine' ? 'cette semaine' : 'ce mois-ci';
-  const hero = budget > 0
-    ? `<section class="hero"><p class="lead">Il te reste ${per}</p><p class="big num ${left < 0 ? 'neg' : ''}">${eur(left)}</p>
-       <div class="bar" role="img" aria-label="${Math.round(pct)} % de l'enveloppe dépensée"><i style="width:${pct}%"></i></div>
-       <p class="sub num">${eur(spent)} dépensés sur ${eur(budget)}</p></section>`
-    : `<section class="hero"><p class="lead">Ton enveloppe perso</p><p class="sub" style="margin-top:8px">Choisis un montant pour voir ce qu'il te reste à dépenser.</p>
-       <button class="btn" data-act="tab" data-k="plus">Ouvrir les réglages</button></section>`;
-
-  const mr = monthRange(S.monthOffset);
-  const pm = paiements.filter(x => inR(x.date_paiement, mr));
-  const enc = sum(pm, 'montant'), urs = sum(pm, 'urssaf_montant');
-  const dpro = sum(depenses.filter(x => x.categorie !== 'perso' && inR(x.date_depense, mr)), 'montant');
-  const byMoyen = Object.entries(MOYENS).map(([k, l]) => [l, sum(pm.filter(x => x.moyen === k), 'montant')]).filter(x => x[1] > 0);
-  const label = mr[2].toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
-
-  const y = new Date().getFullYear(), ca = sum(paiements.filter(x => inR(x.date_paiement, [`${y}-01-01`, `${y}-12-31`])), 'montant');
-  const plaf = +reg.plafond_ca || 0, pp = plaf > 0 ? Math.min(100, ca / plaf * 100) : 0;
-
-  const today = new Date().getDate();
-  const next = prelevements.filter(p => p.actif && p.jour_du_mois >= today);
-  const attente = prestas.filter(p => +p.montant_total - paid(p) > 0.009).slice(0, 5);
-
-  return `${hero}
-  <section>
-    <div class="sec-head"><h2>Le mois</h2>
-      <div class="monthnav"><button data-act="month" data-d="-1" aria-label="Mois précédent">‹</button><span>${label}</span><button data-act="month" data-d="1" aria-label="Mois suivant">›</button></div></div>
-    <div class="row"><span>Encaissé</span><span class="num">${eur(enc)}</span></div>
-    <div class="row"><span>À mettre de côté pour l'URSSAF</span><span class="num">${eur(urs)}</span></div>
-    <div class="row"><span>Dépenses pro</span><span class="num">${eur(dpro)}</span></div>
-    <div class="row total"><span>Il te reste après charges</span><span class="num ${enc - urs - dpro < 0 ? 'neg' : ''}">${eur(enc - urs - dpro)}</span></div>
-    ${byMoyen.length ? `<p class="muted small" style="margin-top:12px">Encaissé par moyen : ${byMoyen.map(([l, v]) => `${l} ${eur(v)}`).join(', ')}</p>` : ''}
-  </section>
-  ${attente.length ? `<section><div class="sec-head"><h2>Soldes à encaisser</h2></div>
-    ${attente.map(p => `<button class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(S.cmap[p.cliente_id]?.nom)}</b><small>${esc(p.type_prestation)}, ${dFR(p.date_prestation)}</small></span>
-      <span class="i-side num warn">${eur(+p.montant_total - paid(p))}</span></button>`).join('')}</section>` : ''}
-  ${plaf > 0 ? `<section><div class="sec-head"><h2>Plafond ${y}</h2><span class="num muted">${eur(ca)} sur ${eur(plaf)}</span></div>
-    <div class="bar slim" role="img" aria-label="${Math.round(pp)} % du plafond atteint"><i style="width:${pp}%"></i></div>
-    <p class="small ${pp >= 85 ? 'warn' : 'muted'}">${pp >= 85 ? 'Tu approches du plafond de chiffre d\'affaires.' : `Il reste ${eur(plaf - ca)} avant le plafond.`}</p></section>` : ''}
-  ${next.length ? `<section><div class="sec-head"><h2>Prélèvements à venir</h2><span class="num muted">${eur(sum(next, 'montant'))}</span></div>
-    ${next.map(p => `<div class="row"><span>${esc(p.libelle)}<small class="muted"> le ${p.jour_du_mois}</small></span><span class="num">${eur(p.montant)}</span></div>`).join('')}</section>` : ''}`;
-}
 
 function prestations() {
   const {prestas} = S.data;
@@ -282,129 +390,192 @@ function clientes() {
   <div id="clist" style="margin-top:6px">${clienteList()}</div></section>`;
 }
 
-function depenses() {
-  const mr = monthRange(S.monthOffset), label = mr[2].toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
-  const list = S.data.depenses.filter(x => inR(x.date_depense, mr));
-  const pro = sum(list.filter(x => x.categorie !== 'perso'), 'montant'), perso = sum(list.filter(x => x.categorie === 'perso'), 'montant');
-  const fourn = sum(list.filter(x => ['fournitures', 'investissement'].includes(x.categorie)), 'montant');
-  return `<section><div class="sec-head"><h2>Dépenses</h2><button class="btn sm" data-act="newDep">Nouvelle dépense</button></div>
-  <div class="monthnav" style="margin:10px 0 6px"><button data-act="month" data-d="-1" aria-label="Mois précédent">‹</button><span>${label}</span><button data-act="month" data-d="1" aria-label="Mois suivant">›</button></div>
-  <div class="row"><span>Pro</span><span class="num">${eur(pro)}</span></div>
-  <div class="row"><span>dont fournitures et investissements</span><span class="num">${eur(fourn)}</span></div>
-  <div class="row"><span>Perso</span><span class="num">${eur(perso)}</span></div>
-  <div style="margin-top:18px">${list.length ? list.map(x => `<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>${CATS[x.categorie]}, ${dFR(x.date_depense)}${x.moyen ? ', ' + MOYENS[x.moyen] : ''}</small></span>
-    <span class="i-side num">${eur(x.montant)}</span><button class="x" data-act="delDep" data-id="${x.id}" aria-label="Supprimer">×</button></div>`).join('')
-    : '<p class="empty">Aucune dépense ce mois-ci.</p>'}</div></section>`;
+/* ---------- Vues Eniram ---------- */
+function eniHome() {
+  const {reg, prestas, paiements} = S.data, y = new Date().getFullYear();
+  const m = eniMonth(S.monthOffset), pv = eniMonth(S.monthOffset - 1);
+  const six = sixMonths(o => eniMonth(o));
+  const sold = prestas.filter(p => +p.montant_total - paid(p) > 0.009).slice(0, 5);
+
+  const types = {}; m.ps.forEach(p => { const t = types[p.type_prestation] ??= {n:0, ca:0}; t.n++; t.ca += +p.montant_total; });
+  const topTypes = Object.entries(types).sort((a, b) => b[1].n - a[1].n || b[1].ca - a[1].ca).slice(0, 5).map(([k, v]) => [k, v.n, eur(v.ca)]);
+
+  const ids = [...new Set(m.ps.map(p => p.cliente_id))];
+  const retour = ids.filter(id => prestas.some(p => p.cliente_id === id && dloc(p.date_prestation) < m.r[0])).length;
+  const totalC = {}; prestas.forEach(p => { totalC[p.cliente_id] = (totalC[p.cliente_id] || 0) + paid(p); });
+  const top = Object.entries(totalC).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id, v]) => [S.cmap[id]?.nom || '?', v]);
+
+  const byMoyen = Object.entries(MOYENS).map(([k, l]) => [l, sum(m.pm.filter(x => x.moyen === k), 'montant')]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
+
+  const ca = sum(paiements.filter(x => inR(x.date_paiement, [`${y}-01-01`, `${y}-12-31`])), 'montant');
+  const plaf = +reg.plafond_ca || 0, pp = plaf > 0 ? Math.min(100, ca / plaf * 100) : 0;
+
+  return `${monthNav()}
+  <section class="hero"><p class="lead">Encaissé en ${monthName(m.r)}</p><p class="big num">${eur(m.enc)}</p>${delta(m.enc, pv.enc)}
+    <p class="sub num">dont ${eur(m.urs)} à mettre de côté pour l'URSSAF</p></section>
+  <div class="kpis">
+    ${kpi('Résultat net', eur(m.net), `<small>après URSSAF et charges</small>${delta(m.net, pv.net)}`, m.net < 0 ? 'neg' : '')}
+    ${kpi('Prestations', m.nb, delta(m.nb, pv.nb))}
+    ${kpi('Panier moyen', eur(m.panier), delta(m.panier, pv.panier))}
+    ${kpi('Marge', m.marge == null ? '—' : Math.round(m.marge * 100) + ' %', '<small>ce qu\'il te reste sur chaque euro encaissé</small>')}
+  </div>
+  <section><div class="sec-head"><h2>Six mois</h2></div>
+    ${chartBars(six.labels, [{name:'Encaissé', color:'var(--s1)', values:six.vals.map(v => v.enc)}, {name:'Résultat net', color:'var(--s2)', values:six.vals.map(v => v.net)}], 'Encaissé et résultat net sur six mois')}</section>
+  <section><div class="sec-head"><h2>Les prestations qui marchent</h2></div>
+    ${topTypes.length ? hbars(topTypes, n => n + ' fois') : '<p class="empty">Pas encore de prestation ce mois-ci.</p>'}</section>
+  <section><div class="sec-head"><h2>Les clientes</h2></div>
+    <div class="row"><span>Clientes vues ce mois-ci</span><span class="num">${ids.length}</span></div>
+    <div class="row"><span>dont de retour</span><span class="num">${retour}</span></div>
+    <div class="row"><span>dont nouvelles</span><span class="num">${ids.length - retour}</span></div>
+    ${top.length ? `<h3 style="margin-top:20px">Tes meilleures clientes</h3>${hbars(top)}` : ''}</section>
+  ${byMoyen.length ? `<section><div class="sec-head"><h2>Comment elles paient</h2></div>${hbars(byMoyen)}</section>` : ''}
+  ${sold.length ? `<section><div class="sec-head"><h2>Soldes à encaisser</h2></div>
+    ${sold.map(p => `<button class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(S.cmap[p.cliente_id]?.nom)}</b><small>${esc(p.type_prestation)}, ${dFR(p.date_prestation)}</small></span>
+      <span class="i-side num warn">${eur(+p.montant_total - paid(p))}</span></button>`).join('')}</section>` : ''}
+  ${plaf > 0 ? `<section><div class="sec-head"><h2>Plafond ${y}</h2><span class="num muted">${eur(ca)} sur ${eur(plaf)}</span></div>
+    <div class="bar slim" role="img" aria-label="${Math.round(pp)} % du plafond atteint"><i style="width:${pp}%"></i></div>
+    <p class="small ${pp >= 85 ? 'warn' : 'muted'}">${pp >= 85 ? 'Tu approches du plafond de chiffre d\'affaires.' : `Il reste ${eur(plaf - ca)} avant le plafond.`}</p></section>` : ''}
+  <section><button class="btn ghost" data-act="goComptes">Voir les comptes</button></section>`;
 }
 
-function plus() {
-  const {reg, produits, prelevements, revenus, campagnes, paiements} = S.data;
-  const actifs = produits.filter(p => !p.date_fin), finis = produits.filter(p => p.date_fin && p.date_achat);
-  const vie = {};
-  finis.forEach(p => { (vie[p.nom] ??= []).push(dayDiff(p.date_achat, p.date_fin)); });
-  const caSur = (a, b) => sum(paiements.filter(x => inR(x.date_paiement, [a, b])), 'montant');
+function depenses() {
+  const mr = monthRange(S.monthOffset);
+  const list = S.data.depenses.filter(x => x.categorie !== 'perso' && inR(x.date_depense, mr));
+  const pro = sum(list, 'montant'), fourn = sum(list.filter(x => ['fournitures', 'investissement'].includes(x.categorie)), 'montant'), pub = sum(list.filter(x => x.categorie === 'pub'), 'montant');
+  return `<section><div class="sec-head"><h2>Dépenses pro</h2><button class="btn sm" data-act="newDep" data-u="eniram">Nouvelle dépense</button></div>
+  ${monthNav()}
+  <div class="row"><span>Total</span><span class="num">${eur(pro)}</span></div>
+  <div class="row"><span>dont fournitures et investissements</span><span class="num">${eur(fourn)}</span></div>
+  <div class="row"><span>dont publicité</span><span class="num">${eur(pub)}</span></div>
+  <div style="margin-top:18px">${list.length ? list.map(x => `<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>${CATS_PRO[x.categorie] || x.categorie}, ${dFR(x.date_depense)}${x.moyen ? ', ' + MOYENS[x.moyen] : ''}</small></span>
+    <span class="i-side num">${eur(x.montant)}</span><button class="x" data-act="delDep" data-id="${x.id}" aria-label="Supprimer">×</button></div>`).join('')
+    : '<p class="empty">Aucune dépense pro ce mois-ci.</p>'}</div></section>`;
+}
 
-  return `<section><h2>Réglages</h2>
-  <form id="regf" style="margin-top:14px">
-    ${f('Taux URSSAF (%)', `<input name="taux" type="number" step="0.01" min="0" max="100" required value="${reg.taux_urssaf}">`)}
-    <div class="two">${f('Enveloppe perso (€)', `<input name="env" type="number" step="0.01" min="0" value="${reg.enveloppe_montant}">`)}
-    ${f('Par', `<select name="per">${opts([['semaine', 'Semaine'], ['mois', 'Mois']], reg.enveloppe_periode)}</select>`)}</div>
-    ${f('Plafond de chiffre d\'affaires annuel (€, facultatif)', `<input name="plafond" type="number" step="0.01" min="0" value="${reg.plafond_ca ?? ''}">`)}
-    <button class="btn" style="margin-top:18px">Enregistrer les réglages</button>
-  </form></section>
-
-  <section><div class="sec-head"><h2>Prélèvements fixes</h2><button class="btn sm" data-act="newPrel">Ajouter</button></div>
-  ${prelevements.length ? prelevements.map(p => `<div class="item"><span class="i-main"><b>${esc(p.libelle)}</b><small>Le ${p.jour_du_mois} du mois, ${p.actif ? 'actif' : 'suspendu'}</small></span>
+function prelBlock(u) {
+  const list = S.data.prelevements.filter(p => p.univers === u);
+  const help = u === 'eniram' ? 'Comptés chaque mois dans ton résultat Eniram.' : 'Déduits de ton reste du mois. L\'enveloppe ne compte que les dépenses du quotidien.';
+  return `<section><div class="sec-head"><h2>Prélèvements fixes</h2><button class="btn sm" data-act="newPrel" data-u="${u}">Ajouter</button></div>
+  <p class="muted small">${help}</p>
+  ${list.length ? list.map(p => `<div class="item"><span class="i-main"><b>${esc(p.libelle)}</b><small>Le ${p.jour_du_mois} du mois, ${p.actif ? 'actif' : 'suspendu'}</small></span>
     <span class="i-side num">${eur(p.montant)}</span>
     <button class="btn ghost sm" data-act="togglePrel" data-id="${p.id}">${p.actif ? 'Suspendre' : 'Réactiver'}</button>
-    <button class="x" data-act="delPrel" data-id="${p.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucun prélèvement fixe.</p>'}</section>
+    <button class="x" data-act="delPrel" data-id="${p.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucun prélèvement fixe.</p>'}</section>`;
+}
 
-  <section><div class="sec-head"><h2>Chômage et autres revenus</h2><button class="btn sm" data-act="newChom">Ajouter</button></div>
-  ${revenus.length ? revenus.slice(0, 12).map(r => `<div class="item"><span class="i-main"><b>${esc(r.libelle)}</b><small>${dFR(r.date_revenu)}</small></span>
-    <span class="i-side num">${eur(r.montant)}</span><button class="x" data-act="delChom" data-id="${r.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Rien d\'enregistré.</p>'}</section>
-
+function eniPlus() {
+  const {reg, produits, campagnes, paiements} = S.data;
+  const actifs = produits.filter(p => !p.date_fin), finis = produits.filter(p => p.date_fin && p.date_achat);
+  const vie = {}; finis.forEach(p => { (vie[p.nom] ??= []).push(dayDiff(p.date_achat, p.date_fin)); });
+  const caSur = (a, b) => sum(paiements.filter(x => inR(x.date_paiement, [a, b])), 'montant');
+  return `<section><h2>Réglages Eniram</h2>
+  <form id="regf" style="margin-top:14px">
+    ${f('Taux URSSAF (%)', `<input name="taux" type="number" step="0.01" min="0" max="100" required value="${reg.taux_urssaf}">`)}
+    ${f('Plafond de chiffre d\'affaires annuel (€, facultatif)', `<input name="plafond" type="number" step="0.01" min="0" value="${reg.plafond_ca ?? ''}">`)}
+    <button class="btn" style="margin-top:18px">Enregistrer</button>
+  </form></section>
+  ${prelBlock('eniram')}
   <section><div class="sec-head"><h2>Produits</h2><button class="btn sm" data-act="newProd">Nouveau produit</button></div>
   ${Object.keys(vie).length ? `<p class="muted small" style="margin-bottom:6px">Durée de vie moyenne : ${Object.entries(vie).map(([n, a]) => `${esc(n)} ${Math.round(a.reduce((t, x) => t + x, 0) / a.length)} j`).join(', ')}</p>` : ''}
   ${actifs.length ? actifs.map(p => `<div class="item"><span class="i-main"><b>${esc(p.nom)}</b><small>${PRODS[p.categorie]}${p.date_achat ? ', acheté le ' + dFR(p.date_achat) : ''}</small></span>
     <button class="btn ghost sm" data-act="finiProd" data-id="${p.id}">Terminé</button><button class="x" data-act="delProd" data-id="${p.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucun produit en cours. Ajoute tes pads et teintures pour les choisir à chaque prestation.</p>'}</section>
-
   <section><div class="sec-head"><h2>Publicités</h2><button class="btn sm" data-act="newPub">Nouvelle campagne</button></div>
   ${campagnes.length ? campagnes.map(c => {
     const len = dayDiff(c.date_debut, c.date_fin) + 1;
-    const pendant = caSur(c.date_debut, c.date_fin), avant = caSur(addDays(c.date_debut, -len), addDays(c.date_debut, -1));
-    const diff = pendant - avant;
+    const pendant = caSur(c.date_debut, c.date_fin), avant = caSur(addDays(c.date_debut, -len), addDays(c.date_debut, -1)), diff = pendant - avant;
+    const roi = +c.budget > 0 ? diff / +c.budget : null;
     return `<div class="item"><span class="i-main"><b>${esc(c.nom)}</b><small>Du ${dFR(c.date_debut)} au ${dFR(c.date_fin)}, budget ${eur(c.budget)}</small>
-      <small>Chiffre d'affaires ${eur(pendant)} pendant, ${eur(avant)} sur la même durée avant : <span class="${diff >= 0 ? 'ok' : 'neg'}">${diff >= 0 ? '+' : ''}${eur(diff)}</span></small></span>
+      <small>Chiffre d'affaires ${eur(pendant)} pendant, ${eur(avant)} sur la même durée avant : <span class="${diff >= 0 ? 'ok' : 'neg'}">${diff >= 0 ? '+' : ''}${eur(diff)}</span></small>
+      ${roi != null ? `<small>${roi >= 0 ? 'Chaque euro de pub a rapporté' : 'Chaque euro de pub a fait perdre'} ${Math.abs(roi).toFixed(1).replace('.', ',')} € de chiffre d'affaires en plus ou en moins</small>` : ''}</span>
       <button class="x" data-act="delPub" data-id="${c.id}" aria-label="Supprimer">×</button></div>`;
-  }).join('') : '<p class="empty">Aucune campagne. Ajoutes-en une pour comparer ton chiffre d\'affaires avec et sans pub.</p>'}</section>
-
-  <section><button class="btn ghost" data-act="logout">Se déconnecter</button></section>`;
+  }).join('') : '<p class="empty">Aucune campagne. Ajoutes-en une pour comparer ton chiffre d\'affaires avec et sans pub.</p>'}</section>`;
 }
 
-/* ---------- Rendu général ---------- */
-function render() {
-  const tabs = [['accueil', 'Accueil'], ['prestations', 'Prestations'], ['clientes', 'Clientes'], ['depenses', 'Dépenses'], ['plus', 'Réglages']];
-  app.innerHTML = `<header class="top"><div class="brand"><div class="mono" aria-hidden="true">EB</div><div class="word"><span>ENIRAM</span><small>BEAUTY</small></div></div>
-    <nav aria-label="Navigation">${tabs.map(([k, l]) => `<button data-act="tab" data-k="${k}" class="${S.tab === k ? 'on' : ''}" ${S.tab === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav></header>
-    <main>${VIEWS[S.tab]()}</main>`;
+/* ---------- Vues Perso ---------- */
+function persoHome() {
+  const {reg, depenses, prelevements} = S.data;
+  const env = reg.enveloppe_periode === 'semaine' ? weekRange() : monthRange(0);
+  const spent = sum(depenses.filter(x => x.categorie === 'perso' && inR(x.date_depense, env)), 'montant');
+  const budget = +reg.enveloppe_montant || 0, left = budget - spent, pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0;
+  const per = reg.enveloppe_periode === 'semaine' ? 'cette semaine' : 'ce mois-ci';
+  const hero = budget > 0
+    ? `<section class="hero"><p class="lead">Il te reste ${per}</p><p class="big num ${left < 0 ? 'neg' : ''}">${eur(left)}</p>
+       <div class="bar" role="img" aria-label="${Math.round(pct)} % de l'enveloppe dépensée"><i style="width:${pct}%"></i></div>
+       <p class="sub num">${eur(spent)} dépensés sur ${eur(budget)}</p>
+       <button class="btn" data-act="newDep" data-u="perso">Noter une dépense</button></section>`
+    : `<section class="hero"><p class="lead">Ton enveloppe</p><p class="sub" style="margin-top:8px">Choisis un montant pour voir ce qu'il te reste à dépenser.</p>
+       <button class="btn" data-act="tab" data-k="plus">Ouvrir les réglages</button></section>`;
+
+  const m = persoMonth(S.monthOffset), pv = persoMonth(S.monthOffset - 1);
+  const six = sixMonths(o => persoMonth(o));
+  const cats = {}; m.dep.forEach(x => { const k = x.sous_categorie || 'Autre'; cats[k] = (cats[k] || 0) + +x.montant; });
+  const catList = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  const today = new Date().getDate();
+  const next = prelevements.filter(p => p.actif && p.univers === 'perso' && p.jour_du_mois >= today);
+
+  return `${hero}
+  <section>${monthNav()}
+  <div class="kpis" style="margin-top:0">
+    ${kpi('Revenus', eur(m.revTot), `<small>dont ${eur(m.eni.net)} d'Eniram</small>${delta(m.revTot, pv.revTot)}`)}
+    ${kpi('Dépenses', eur(m.out), `<small>dont ${eur(m.fixes)} de prélèvements fixes</small>${delta(m.out, pv.out)}`)}
+    ${kpi('Reste du mois', eur(m.reste), delta(m.reste, pv.reste), m.reste < 0 ? 'neg' : '')}
+    ${kpi('Épargne', m.epargne == null ? '—' : Math.round(m.epargne * 100) + ' %', '<small>de tes revenus mis de côté</small>')}
+  </div></section>
+  <section><div class="sec-head"><h2>Six mois</h2></div>
+    ${chartBars(six.labels, [{name:'Revenus', color:'var(--s1)', values:six.vals.map(v => v.revTot)}, {name:'Dépenses', color:'var(--s2)', values:six.vals.map(v => v.out)}], 'Revenus et dépenses sur six mois')}</section>
+  <section><div class="sec-head"><h2>Où part l'argent</h2></div>
+    ${catList.length ? hbars(catList) : '<p class="empty">Aucune dépense perso ce mois-ci.</p>'}</section>
+  <section><div class="sec-head"><h2>D'où vient l'argent</h2></div>
+    <div class="row"><span>Eniram, résultat du mois<span class="tag">automatique</span></span><span class="num ${m.eni.net < 0 ? 'neg' : ''}">${eur(m.eni.net)}</span></div>
+    ${m.revAutres.map(x => `<div class="row"><span>${esc(x.libelle)}</span><span class="num">${eur(x.montant)}</span></div>`).join('')}
+    <div class="row total"><span>Total</span><span class="num">${eur(m.revTot)}</span></div></section>
+  ${next.length ? `<section><div class="sec-head"><h2>Prélèvements à venir</h2><span class="num muted">${eur(sum(next, 'montant'))}</span></div>
+    ${next.map(p => `<div class="row"><span>${esc(p.libelle)}<small class="muted"> le ${p.jour_du_mois}</small></span><span class="num">${eur(p.montant)}</span></div>`).join('')}</section>` : ''}`;
 }
 
-function loginView(msg) {
-  app.innerHTML = `<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Eniram Beauty</h1><p class="muted">Connecte-toi pour ouvrir ta compta.</p>
-  <form id="lf">${f('Adresse email', '<input name="email" type="email" required autocomplete="username">')}
-  ${f('Mot de passe', '<input name="password" type="password" required autocomplete="current-password">')}
-  <button class="btn">Se connecter</button><p class="err" id="lerr">${esc(msg || '')}</p></form></div>`;
+function mouvements() {
+  const m = persoMonth(S.monthOffset);
+  const items = [
+    ...m.dep.map(x => ({d:x.date_depense, h:`<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>${esc(x.sous_categorie || 'Autre')}, ${dFR(x.date_depense)}</small></span>
+      <span class="i-side num">−${eur(x.montant)}</span><button class="x" data-act="delDep" data-id="${x.id}" aria-label="Supprimer">×</button></div>`})),
+    ...m.revAutres.map(x => ({d:x.date_revenu, h:`<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>Revenu, ${dFR(x.date_revenu)}</small></span>
+      <span class="i-side num pos">+${eur(x.montant)}</span><button class="x" data-act="delChom" data-id="${x.id}" aria-label="Supprimer">×</button></div>`}))
+  ].sort((a, b) => a.d < b.d ? 1 : -1);
+  return `<section><div class="sec-head"><h2>Mouvements</h2></div>${monthNav()}
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" data-act="newDep" data-u="perso">Nouvelle dépense</button><button class="btn ghost sm" data-act="newChom">Nouveau revenu</button></div>
+  <div class="item" style="cursor:default"><span class="i-main"><b>Eniram, résultat du mois<span class="tag">automatique</span></b><small>Calculé depuis les prestations</small></span><span class="i-side num ${m.eni.net < 0 ? 'neg' : 'pos'}">${m.eni.net >= 0 ? '+' : '−'}${eur(Math.abs(m.eni.net))}</span></div>
+  ${items.length ? items.map(i => i.h).join('') : '<p class="empty">Aucune dépense ni revenu noté ce mois-ci.</p>'}</section>`;
 }
 
-/* ---------- Formulaires ---------- */
-function prestaForm(nom = '') {
-  const {clientes, produits} = S.data;
-  const pads = produits.filter(p => p.categorie === 'pad' && !p.date_fin).map(p => [p.id, p.nom]);
-  const tints = produits.filter(p => p.categorie === 'teinture' && !p.date_fin).map(p => [p.id, p.nom]);
-  modal('Nouvelle prestation', `
-    ${f('Cliente', `<input name="cliente" list="dl-cl" required autocomplete="off" value="${esc(nom)}" placeholder="Choisis ou écris un nouveau nom"><datalist id="dl-cl">${clientes.map(c => `<option value="${esc(c.nom)}">`).join('')}</datalist>`)}
-    <div class="two">${f('Date et heure', `<input name="date_prestation" type="datetime-local" required value="${nowLocal()}">`)}
-    ${f('Montant total (€)', '<input name="montant_total" type="number" step="0.01" min="0" required inputmode="decimal">')}</div>
-    ${f('Prestation', `<input name="type_prestation" list="dl-ty" required><datalist id="dl-ty">${TYPES.map(t => `<option value="${t}">`).join('')}</datalist>`)}
-    <h3 style="margin-top:22px">Encaissement</h3>
-    <div class="two">${f('Montant encaissé (€)', '<input name="encaisse" type="number" step="0.01" min="0" inputmode="decimal">')}
-    ${f('Type', `<select name="ptype">${opts([['solde', 'Solde'], ['acompte', 'Acompte']])}</select>`)}</div>
-    ${f('Moyen de paiement', `<select name="moyen">${optsObj(MOYENS)}</select>`)}
-    <h3 style="margin-top:22px">Ce que tu as utilisé</h3>
-    <div class="two">${f('Pad', `<select name="pad_id"><option value="">Aucun</option>${opts(pads)}</select>`)}
-    ${f('Taille', '<input name="pad_taille">')}</div>
-    ${f('Courbure', '<input name="pad_courbure" placeholder="ex. L, M, curl">')}
-    ${f('Teinture sourcils', `<select name="teinture_id"><option value="">Aucune</option>${opts(tints)}</select>`)}
-    ${f('Notes', '<textarea name="notes" placeholder="Retour de la cliente, ajustement pour la prochaine fois"></textarea>')}
-  `, async fd => {
-    const nomC = fd.cliente.trim();
-    let c = S.data.clientes.find(x => x.nom.trim().toLowerCase() === nomC.toLowerCase());
-    if (!c) { const r = await sb.from('clientes').insert({nom:nomC}).select().single(); if (r.error) throw r.error; c = r.data; }
-    const r = await sb.from('prestations').insert({
-      cliente_id:c.id, date_prestation:new Date(fd.date_prestation).toISOString(), type_prestation:fd.type_prestation.trim(), montant_total:+fd.montant_total,
-      pad_id:nz(fd.pad_id), pad_taille:nz(fd.pad_taille), pad_courbure:nz(fd.pad_courbure), teinture_id:nz(fd.teinture_id), notes:nz(fd.notes)
-    }).select().single();
-    if (r.error) throw r.error;
-    if (+fd.encaisse > 0) {
-      const p = await sb.from('paiements').insert({prestation_id:r.data.id, type:fd.ptype, montant:+fd.encaisse, moyen:fd.moyen, date_paiement:fd.date_prestation.slice(0, 10)});
-      if (p.error) throw p.error;
-    }
-  });
+function persoPlus() {
+  const {reg, revenus} = S.data;
+  return `<section><h2>Réglages perso</h2>
+  <form id="regp" style="margin-top:14px">
+    <div class="two">${f('Enveloppe (€)', `<input name="env" type="number" step="0.01" min="0" value="${reg.enveloppe_montant}">`)}
+    ${f('Par', `<select name="per">${opts([['semaine', 'Semaine'], ['mois', 'Mois']], reg.enveloppe_periode)}</select>`)}</div>
+    <button class="btn" style="margin-top:18px">Enregistrer</button>
+  </form></section>
+  ${prelBlock('perso')}
+  <section><div class="sec-head"><h2>Chômage et autres revenus</h2><button class="btn sm" data-act="newChom">Ajouter</button></div>
+  ${revenus.length ? revenus.slice(0, 12).map(r => `<div class="item"><span class="i-main"><b>${esc(r.libelle)}</b><small>${dFR(r.date_revenu)}</small></span>
+    <span class="i-side num">${eur(r.montant)}</span><button class="x" data-act="delChom" data-id="${r.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Rien d\'enregistré.</p>'}</section>`;
 }
 
-function payForm(p) {
-  const rest = Math.max(0, +p.montant_total - paid(p));
-  modal('Ajouter un paiement', `
-    <div class="two">${f('Montant (€)', `<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal" value="${rest || ''}">`)}
-    ${f('Type', `<select name="type">${opts([['solde', 'Solde'], ['acompte', 'Acompte']])}</select>`)}</div>
-    ${f('Moyen de paiement', `<select name="moyen">${optsObj(MOYENS)}</select>`)}
-    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}
-  `, async fd => {
-    const r = await sb.from('paiements').insert({prestation_id:p.id, type:fd.type, montant:+fd.montant, moyen:fd.moyen, date_paiement:fd.date});
-    if (r.error) throw r.error;
-  });
+/* ---------- Comptes (commun aux deux profils) ---------- */
+function comptes() {
+  const {comptes, paiements, depenses, revenus} = S.data, mr = monthRange(0);
+  const rows = comptes.map(c => ({c, all:soldeOf(c), mois:soldeOf(c, mr)}));
+  const total = sum(rows.map(r => ({v:r.all.solde})), 'v'), urs = eniMonth(0).urs;
+  const orphan = paiements.filter(x => !x.compte_id).length + depenses.filter(x => !x.compte_id).length + revenus.filter(x => !x.compte_id).length;
+  return `<section><div class="sec-head"><h2>Comptes</h2><button class="btn sm" data-act="newCompte">Ajouter</button></div>
+  <section class="hero" style="margin-top:12px"><p class="lead">Au total</p><p class="big num ${total < 0 ? 'neg' : ''}">${eur(total)}</p>
+    <p class="sub num">dont ${eur(urs)} à réserver pour l'URSSAF (encaissé ce mois-ci)</p></section>
+  <div style="margin-top:18px">${rows.length ? rows.map(({c, all, mois}) => `<button class="item" data-act="editCompte" data-id="${c.id}"><span class="i-main"><b>${esc(c.nom)}</b>
+    <small>${COMPTE_TYPES[c.type]}, ce mois-ci +${eur(mois.inn)} −${eur(mois.out)}</small></span><span class="i-side num ${all.solde < 0 ? 'neg' : ''}">${eur(all.solde)}</span></button>`).join('')
+    : '<p class="empty">Aucun compte. Ajoute Revolut, espèces, banque.</p>'}</div>
+  ${orphan ? `<p class="note" style="margin-top:18px">${orphan} mouvement${orphan > 1 ? 's' : ''} sans compte ne sont pas comptés dans ces soldes. Choisis un compte à la saisie pour qu'ils le soient.</p>` : ''}
+  <p class="muted small" style="margin-top:14px">Touche un compte pour corriger son solde réel, par exemple après un retrait ou un virement entre comptes.</p></section>`;
 }
-
 function clienteForm(c) {
   modal(c ? 'Modifier la cliente' : 'Nouvelle cliente', `
     ${f('Nom', `<input name="nom" required value="${esc(c?.nom)}">`)}
@@ -417,43 +588,6 @@ function clienteForm(c) {
     if (r.error) throw r.error;
   });
 }
-
-function depForm() {
-  modal('Nouvelle dépense', `
-    ${f('Libellé', '<input name="libelle" required>')}
-    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
-    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
-    <div class="two">${f('Catégorie', `<select name="categorie">${optsObj(CATS)}</select>`)}
-    ${f('Moyen', `<select name="moyen"><option value="">Non précisé</option>${optsObj(MOYENS)}</select>`)}</div>
-  `, async fd => {
-    const r = await sb.from('depenses').insert({libelle:fd.libelle.trim(), montant:+fd.montant, date_depense:fd.date, categorie:fd.categorie, moyen:nz(fd.moyen)});
-    if (r.error) throw r.error;
-  });
-}
-
-function prelForm() {
-  modal('Nouveau prélèvement fixe', `
-    ${f('Libellé', '<input name="libelle" required>')}
-    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
-    ${f('Jour du mois', '<input name="jour" type="number" min="1" max="31" required inputmode="numeric">')}</div>
-    ${f('Catégorie (facultatif)', '<input name="categorie">')}
-  `, async fd => {
-    const r = await sb.from('prelevements_fixes').insert({libelle:fd.libelle.trim(), montant:+fd.montant, jour_du_mois:+fd.jour, categorie:nz(fd.categorie)});
-    if (r.error) throw r.error;
-  });
-}
-
-function chomForm() {
-  modal('Nouveau revenu', `
-    ${f('Libellé', '<input name="libelle" required value="Chômage">')}
-    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
-    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
-  `, async fd => {
-    const r = await sb.from('revenus_perso').insert({libelle:fd.libelle.trim(), montant:+fd.montant, date_revenu:fd.date});
-    if (r.error) throw r.error;
-  });
-}
-
 function prodForm() {
   modal('Nouveau produit', `
     ${f('Nom', '<input name="nom" required>')}
@@ -471,7 +605,6 @@ function prodForm() {
     }
   });
 }
-
 function pubForm() {
   modal('Nouvelle campagne', `
     ${f('Nom', '<input name="nom" required placeholder="ex. Pub Instagram de novembre">')}
@@ -489,7 +622,6 @@ function pubForm() {
     }
   });
 }
-
 /* ---------- Fiches ---------- */
 function prestaDetail(id) {
   const p = S.data.prestas.find(x => x.id === id); if (!p) return;
@@ -540,11 +672,160 @@ async function del(table, id, msg, after) {
   if (error) return toast(error.message, true);
   await refresh(); toast('Supprimé'); if (after) after();
 }
+
+/* ---------- Rendu général ---------- */
+const VIEWS = {
+  eniram:{accueil:eniHome, prestations, clientes, depenses, plus:eniPlus, comptes},
+  perso:{accueil:persoHome, mouvements, comptes, plus:persoPlus}
+};
+function render() {
+  const P = PROFILES[S.profile], other = S.profile === 'eniram' ? 'perso' : 'eniram', O = PROFILES[other];
+  document.body.dataset.p = S.profile;
+  const mt = document.querySelector('meta[name="theme-color"]'); if (mt) mt.content = P.theme;
+  const view = VIEWS[S.profile][S.tab] || VIEWS[S.profile].accueil;
+  app.innerHTML = `<header class="top"><button class="pbtn" data-act="sheet" aria-label="Changer de profil"><span class="mono" aria-hidden="true">${P.mono}</span>
+    <span class="word"><span>${P.word[0]}</span><small>${P.word[1]}</small></span><i class="chev" aria-hidden="true">▾</i></button>
+    <nav aria-label="Navigation">${NAV[S.profile].map(([k, l]) => `<button data-act="tab" data-k="${k}" class="${S.tab === k ? 'on' : ''}" ${S.tab === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
+    <button class="alt" data-act="switch" data-k="${other}" aria-label="Passer au profil ${O.nom}" style="background:${O.bg};color:${O.fg}">${O.mono}</button></header>
+    <main>${view()}</main>`;
+}
+function setProfile(k) {
+  S.profile = k; S.tab = 'accueil'; S.monthOffset = 0; lsSet('eb_profile', k);
+  if ($('#dlg').open) $('#dlg').close();
+  render(); scrollTo(0, 0);
+}
+function profileSheet() {
+  modal('Profils', `<div class="prof">${Object.entries(PROFILES).map(([k, p]) => `<button type="button" class="item" data-act="switch" data-k="${k}">
+      <span class="av" style="background:${p.bg};color:${p.fg}" aria-hidden="true">${p.mono}</span><span class="i-main"><b>${p.nom}</b><small>${p.sous}</small></span>${S.profile === k ? '<span class="ok" aria-label="Profil actuel">✓</span>' : ''}</button>`).join('')}</div>
+    <button type="button" class="item" data-act="goComptes"><span class="i-main"><b>Comptes</b><small>Revolut, espèces, banque</small></span></button>
+    <div style="margin:20px 0 14px"><button type="button" class="btn ghost" data-act="logout">Se déconnecter</button></div>`, null);
+}
+
+function loginView(msg) {
+  document.body.dataset.p = 'eniram';
+  app.innerHTML = `<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Eniram Beauty</h1><p class="muted">Connecte-toi pour ouvrir ta compta.</p>
+  <form id="lf">${f('Adresse email', '<input name="email" type="email" required autocomplete="username">')}
+  ${f('Mot de passe', '<input name="password" type="password" required autocomplete="current-password">')}
+  <button class="btn">Se connecter</button><p class="err" id="lerr">${esc(msg || '')}</p></form></div>`;
+}
+
+/* ---------- Formulaires ---------- */
+function prestaForm(nom = '') {
+  const {clientes, produits} = S.data;
+  const pads = produits.filter(p => p.categorie === 'pad' && !p.date_fin).map(p => [p.id, p.nom]);
+  const tints = produits.filter(p => p.categorie === 'teinture' && !p.date_fin).map(p => [p.id, p.nom]);
+  modal('Nouvelle prestation', `
+    ${f('Cliente', `<input name="cliente" list="dl-cl" required autocomplete="off" value="${esc(nom)}" placeholder="Choisis ou écris un nouveau nom"><datalist id="dl-cl">${clientes.map(c => `<option value="${esc(c.nom)}">`).join('')}</datalist>`)}
+    <div class="two">${f('Date et heure', `<input name="date_prestation" type="datetime-local" required value="${nowLocal()}">`)}
+    ${f('Montant total (€)', '<input name="montant_total" type="number" step="0.01" min="0" required inputmode="decimal">')}</div>
+    ${f('Prestation', `<input name="type_prestation" list="dl-ty" required><datalist id="dl-ty">${TYPES.map(t => `<option value="${t}">`).join('')}</datalist>`)}
+    <h3 style="margin-top:22px">Encaissement</h3>
+    <div class="two">${f('Montant encaissé (€)', '<input name="encaisse" type="number" step="0.01" min="0" inputmode="decimal">')}
+    ${f('Type', `<select name="ptype">${opts([['solde', 'Solde'], ['acompte', 'Acompte']])}</select>`)}</div>
+    <div class="two">${f('Moyen de paiement', `<select name="moyen">${optsObj(MOYENS)}</select>`)}${compteField(defaultCompte('especes'))}</div>
+    <h3 style="margin-top:22px">Ce que tu as utilisé</h3>
+    <div class="two">${f('Pad', `<select name="pad_id"><option value="">Aucun</option>${opts(pads)}</select>`)}
+    ${f('Taille', '<input name="pad_taille">')}</div>
+    ${f('Courbure', '<input name="pad_courbure" placeholder="ex. L, M, curl">')}
+    ${f('Teinture sourcils', `<select name="teinture_id"><option value="">Aucune</option>${opts(tints)}</select>`)}
+    ${f('Notes', '<textarea name="notes" placeholder="Retour de la cliente, ajustement pour la prochaine fois"></textarea>')}
+  `, async fd => {
+    const nomC = fd.cliente.trim();
+    let c = S.data.clientes.find(x => x.nom.trim().toLowerCase() === nomC.toLowerCase());
+    if (!c) { const r = await sb.from('clientes').insert({nom:nomC}).select().single(); if (r.error) throw r.error; c = r.data; }
+    const r = await sb.from('prestations').insert({
+      cliente_id:c.id, date_prestation:new Date(fd.date_prestation).toISOString(), type_prestation:fd.type_prestation.trim(), montant_total:+fd.montant_total,
+      pad_id:nz(fd.pad_id), pad_taille:nz(fd.pad_taille), pad_courbure:nz(fd.pad_courbure), teinture_id:nz(fd.teinture_id), notes:nz(fd.notes)
+    }).select().single();
+    if (r.error) throw r.error;
+    if (+fd.encaisse > 0) {
+      const p = await sb.from('paiements').insert({prestation_id:r.data.id, type:fd.ptype, montant:+fd.encaisse, moyen:fd.moyen, compte_id:nz(fd.compte_id), date_paiement:fd.date_prestation.slice(0, 10)});
+      if (p.error) throw p.error;
+    }
+  });
+}
+
+function payForm(p) {
+  const rest = Math.max(0, +p.montant_total - paid(p));
+  modal('Ajouter un paiement', `
+    <div class="two">${f('Montant (€)', `<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal" value="${rest || ''}">`)}
+    ${f('Type', `<select name="type">${opts([['solde', 'Solde'], ['acompte', 'Acompte']])}</select>`)}</div>
+    <div class="two">${f('Moyen de paiement', `<select name="moyen">${optsObj(MOYENS)}</select>`)}${compteField(defaultCompte('especes'))}</div>
+    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}
+  `, async fd => {
+    const r = await sb.from('paiements').insert({prestation_id:p.id, type:fd.type, montant:+fd.montant, moyen:fd.moyen, compte_id:nz(fd.compte_id), date_paiement:fd.date});
+    if (r.error) throw r.error;
+  });
+}
+
+function depForm(u) {
+  const perso = u === 'perso';
+  modal(perso ? 'Nouvelle dépense perso' : 'Nouvelle dépense pro', `
+    ${f('Libellé', '<input name="libelle" required>')}
+    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
+    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
+    ${perso
+      ? `${f('Catégorie', `<select name="sous">${opts(CATS_PERSO.map(c => [c, c]))}</select>`)}${compteField(defaultCompte('cb'))}`
+      : `<div class="two">${f('Catégorie', `<select name="categorie">${optsObj(CATS_PRO)}</select>`)}
+         ${f('Moyen', `<select name="moyen"><option value="">Non précisé</option>${optsObj(MOYENS)}</select>`)}</div>${compteField('')}`}
+  `, async fd => {
+    const row = perso
+      ? {libelle:fd.libelle.trim(), montant:+fd.montant, date_depense:fd.date, categorie:'perso', sous_categorie:fd.sous, compte_id:nz(fd.compte_id)}
+      : {libelle:fd.libelle.trim(), montant:+fd.montant, date_depense:fd.date, categorie:fd.categorie, moyen:nz(fd.moyen), compte_id:nz(fd.compte_id)};
+    const r = await sb.from('depenses').insert(row);
+    if (r.error) throw r.error;
+  });
+}
+
+function prelForm(u) {
+  modal('Nouveau prélèvement fixe', `
+    ${f('Libellé', '<input name="libelle" required>')}
+    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
+    ${f('Jour du mois', '<input name="jour" type="number" min="1" max="31" required inputmode="numeric">')}</div>
+    ${f('Catégorie (facultatif)', '<input name="categorie">')}
+  `, async fd => {
+    const r = await sb.from('prelevements_fixes').insert({libelle:fd.libelle.trim(), montant:+fd.montant, jour_du_mois:+fd.jour, categorie:nz(fd.categorie), univers:u});
+    if (r.error) throw r.error;
+  });
+}
+
+function chomForm() {
+  modal('Nouveau revenu', `
+    ${f('Libellé', '<input name="libelle" required value="Chômage">')}
+    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
+    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
+    ${compteField(defaultCompte('cb'))}
+  `, async fd => {
+    const r = await sb.from('revenus_perso').insert({libelle:fd.libelle.trim(), montant:+fd.montant, date_revenu:fd.date, compte_id:nz(fd.compte_id)});
+    if (r.error) throw r.error;
+  });
+}
+
+function compteForm(c) {
+  const cur = c ? soldeOf(c) : null;
+  modal(c ? 'Modifier le compte' : 'Nouveau compte', `
+    ${f('Nom', `<input name="nom" required value="${esc(c?.nom)}">`)}
+    ${f('Type', `<select name="type">${optsObj(COMPTE_TYPES, c?.type || 'banque')}</select>`)}
+    ${c ? f('Solde réel actuel (€)', `<input name="actuel" type="number" step="0.01" inputmode="decimal" required value="${cur.solde.toFixed(2)}">`)
+        : f('Solde de départ (€)', '<input name="depart" type="number" step="0.01" inputmode="decimal" value="0">')}
+    ${c ? `<div style="margin-top:18px"><button type="button" class="btn danger sm" data-act="delCompte" data-id="${c.id}">Supprimer ce compte</button></div>` : ''}
+  `, async fd => {
+    const row = {nom:fd.nom.trim(), type:fd.type};
+    if (c) row.solde_initial = +(+fd.actuel - (cur.inn - cur.out)).toFixed(2); else row.solde_initial = +fd.depart || 0;
+    const r = c ? await sb.from('comptes').update(row).eq('id', c.id) : await sb.from('comptes').insert(row);
+    if (r.error) throw r.error;
+  });
+}
+
+/* ---------- Actions ---------- */
 const ACTS = {
   close() { $('#dlg').close(); },
   tab(d) { S.tab = d.k; render(); scrollTo(0, 0); },
   month(d) { S.monthOffset += +d.d; render(); },
-  async logout() { await sb.auth.signOut(); },
+  sheet() { profileSheet(); },
+  switch(d) { setProfile(d.k); },
+  goComptes() { if ($('#dlg').open) $('#dlg').close(); S.tab = 'comptes'; render(); scrollTo(0, 0); },
+  async logout() { if ($('#dlg').open) $('#dlg').close(); await sb.auth.signOut(); },
   newPresta(d) { prestaForm(d.nom || ''); },
   openPresta(d) { prestaDetail(d.id); },
   payAdd(d) { payForm(S.data.prestas.find(p => p.id === d.id)); },
@@ -553,9 +834,9 @@ const ACTS = {
   newCliente() { clienteForm(); },
   editCliente(d) { clienteForm(S.cmap[d.id]); },
   openCliente(d) { clienteDetail(d.id); },
-  newDep() { depForm(); },
+  newDep(d) { depForm(d.u || 'eniram'); },
   delDep(d) { del('depenses', d.id, 'Supprimer cette dépense ?'); },
-  newPrel() { prelForm(); },
+  newPrel(d) { prelForm(d.u || 'perso'); },
   async togglePrel(d) {
     const p = S.data.prelevements.find(x => x.id === d.id);
     const {error} = await sb.from('prelevements_fixes').update({actif:!p.actif}).eq('id', d.id);
@@ -573,7 +854,10 @@ const ACTS = {
   },
   delProd(d) { del('produits', d.id, 'Supprimer ce produit ?'); },
   newPub() { pubForm(); },
-  delPub(d) { del('campagnes_pub', d.id, 'Supprimer cette campagne ?'); }
+  delPub(d) { del('campagnes_pub', d.id, 'Supprimer cette campagne ?'); },
+  newCompte() { compteForm(); },
+  editCompte(d) { compteForm(S.data.comptes.find(c => c.id === d.id)); },
+  delCompte(d) { del('comptes', d.id, 'Supprimer ce compte ? Les mouvements restent, mais ne sont plus rattachés à un compte.', () => $('#dlg').close()); }
 };
 
 document.addEventListener('click', e => {
@@ -583,6 +867,10 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'csearch') { S.search = e.target.value; $('#clist').innerHTML = clienteList(); }
 });
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.name === 'moyen' && t.value) { const c = t.form && t.form.querySelector('[name=compte_id]'); if (c) c.value = defaultCompte(t.value); }
+});
 document.addEventListener('submit', async e => {
   if (e.target.id === 'lf') {
     e.preventDefault();
@@ -591,13 +879,13 @@ document.addEventListener('submit', async e => {
     if (error) return loginView('Email ou mot de passe incorrect.');
     return refresh();
   }
-  if (e.target.id === 'regf') {
+  if (e.target.id === 'regf' || e.target.id === 'regp') {
     e.preventDefault();
     const fd = Object.fromEntries(new FormData(e.target));
-    const {error} = await sb.from('reglages').update({
-      taux_urssaf:+fd.taux, enveloppe_montant:+fd.env || 0, enveloppe_periode:fd.per,
-      plafond_ca:nz(fd.plafond) == null ? null : +fd.plafond, updated_at:new Date().toISOString()
-    }).eq('id', 1);
+    const row = e.target.id === 'regf'
+      ? {taux_urssaf:+fd.taux, plafond_ca:nz(fd.plafond) == null ? null : +fd.plafond}
+      : {enveloppe_montant:+fd.env || 0, enveloppe_periode:fd.per};
+    const {error} = await sb.from('reglages').update({...row, updated_at:new Date().toISOString()}).eq('id', 1);
     if (error) return toast(error.message, true);
     await refresh(); toast('Réglages enregistrés');
   }
