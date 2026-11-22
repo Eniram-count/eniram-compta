@@ -161,6 +161,10 @@ details.tv summary{cursor:pointer;padding:4px 0}
 .note{background:var(--rose-doux);border-radius:16px;padding:14px 16px;font-size:.92rem}
 .mn{display:flex;justify-content:center;margin-bottom:16px}
 .pos{color:var(--ok)}
+.alert{margin:8px 0;padding:11px 14px;border-radius:14px;font-size:.94rem;background:var(--rose-doux);border-left:4px solid var(--brun-doux)}
+.alert.warn{border-left-color:var(--s2)}
+.alert.neg{border-left-color:var(--alerte)}
+.item.wrap{flex-wrap:wrap}
 
 </style>
 </head>
@@ -214,17 +218,19 @@ function toast(msg, bad) {
 }
 
 
-/* ---------- Constantes v2 ---------- */
+/* ---------- Constantes ---------- */
 const CATS_PRO = {fournitures:'Fournitures', investissement:'Investissement', pub:'Pub', charge_variable:'Charge variable', autre:'Autre'};
-const CATS_PERSO = ['Courses', 'Sorties et loisirs', 'Shopping', 'Santé et beauté', 'Transport', 'Maison', 'Autre'];
-const COMPTE_TYPES = {banque:'Banque', revolut:'Revolut', especes:'Espèces', autre:'Autre'};
+const CATS_PERSO_DEFAUT = ['Essence et transport', 'Shopping', 'Beauté et soins', 'Restaurants et sorties', 'Cadeaux', 'Loisirs', 'Abonnements', 'Formation', 'Dépenses diverses', 'Vacances'];
+const COMPTE_TYPES = {banque:'Banque', revolut:'Revolut', especes:'Espèces', epargne:'Épargne', autre:'Autre'};
+const EPARGNE_TYPES = {securite:'Épargne de sécurité', generale:'Épargne générale', projet:'Épargne projet', vacances:'Pot vacances', autre:'Autre objectif'};
+const SOURCES = {chomage:'Chômage France Travail', salaire_pro:'Salaire professionnel', ponctuel:'Revenu ponctuel', autre:'Autre'};
 const PROFILES = {
   eniram:{nom:'eniram.beauty', mono:'EB', bg:'#E9A8BB', fg:'#5B3A3F', theme:'#FAF1EE', word:['ENIRAM', 'BEAUTY'], sous:'L\'activité'},
   perso:{nom:'perso', mono:'P', bg:'#A9C0A8', fg:'#26332B', theme:'#F4F2EA', word:['PERSO', 'MES COMPTES'], sous:'L\'argent perso'}
 };
 const NAV = {
   eniram:[['accueil', 'Accueil'], ['prestations', 'Prestations'], ['clientes', 'Clientes'], ['depenses', 'Dépenses'], ['plus', 'Réglages']],
-  perso:[['accueil', 'Accueil'], ['mouvements', 'Mouvements'], ['comptes', 'Comptes'], ['plus', 'Réglages']]
+  perso:[['accueil', 'Accueil'], ['mouvements', 'Mouvements'], ['comptes', 'Comptes'], ['epargne', 'Épargne'], ['plus', 'Réglages']]
 };
 
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -235,6 +241,8 @@ const S = {profile: lsGet('eb_profile') === 'perso' ? 'perso' : 'eniram', tab:'a
 const dloc = s => s.length <= 10 ? s : iso(new Date(s));
 const monthName = r => r[2].toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
 const monthShort = r => r[2].toLocaleDateString('fr-FR', {month:'short'}).replace('.', '');
+const floorTo = (v, n) => n > 0 ? Math.floor(v / n) * n : v;
+const r2 = v => Math.round(v * 100) / 100;
 
 /* ---------- Données ---------- */
 async function load() {
@@ -242,67 +250,131 @@ async function load() {
   const res = await Promise.all([
     sb.from('reglages').select('*').eq('id', 1).single(),
     t('clientes', ['nom', true]), t('produits', ['created_at', false]), t('prestations', ['date_prestation', false]),
-    t('paiements', ['date_paiement', false]), t('depenses', ['date_depense', false]), t('prelevements_fixes', ['jour_du_mois', true]),
-    t('revenus_perso', ['date_revenu', false]), t('campagnes_pub', ['date_debut', false]), t('comptes', ['created_at', true])
+    t('paiements', ['date_paiement', false]), t('depenses', ['date_depense', false]), t('prelevements_fixes', ['created_at', true]),
+    t('revenus_perso', ['date_revenu', false]), t('campagnes_pub', ['date_debut', false]), t('comptes', ['created_at', true]),
+    t('transferts', ['date_transfert', false]), t('urssaf_paiements', ['date_paiement', false]), t('budgets_mensuels', ['mois', false]), t('categories_perso', ['ordre', true])
   ]);
   const bad = res.find(r => r.error); if (bad) throw bad.error;
-  const [reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes] = res.map(r => r.data);
-  S.data = {reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes};
+  const [reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes, transferts, urssafPay, budgets, categories] = res.map(r => r.data);
+  S.data = {reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes, transferts, urssafPay, budgets, categories};
   S.pay = {}; paiements.forEach(p => (S.pay[p.prestation_id] ??= []).push(p));
   S.cmap = Object.fromEntries(clientes.map(c => [c.id, c]));
   S.pmap = Object.fromEntries(produits.map(p => [p.id, p]));
-  const dates = [...paiements.map(x => x.date_paiement), ...depenses.map(x => x.date_depense), ...revenus.map(x => x.date_revenu), ...prestas.map(x => dloc(x.date_prestation))];
+  S.cpt = Object.fromEntries(comptes.map(c => [c.id, c]));
+  const dates = [...paiements.map(x => x.date_paiement), ...depenses.map(x => x.date_depense), ...revenus.filter(x => x.statut === 'recu').map(x => x.date_revenu), ...prestas.map(x => dloc(x.date_prestation)), ...transferts.map(x => x.date_transfert)];
   S.first = (dates.length ? dates.reduce((a, b) => a < b ? a : b) : iso(new Date())).slice(0, 7) + '-01';
 }
 async function refresh() {
   try { await load(); render(); }
   catch (e) {
     const m = e.message || '';
-    if (/comptes|compte_id|univers|sous_categorie/.test(m)) {
-      app.innerHTML = '<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Une mise à jour est nécessaire</h1><p class="muted">Lance une fois le script « migration v2 » dans l\'éditeur SQL de Supabase, puis recharge cette page.</p></div>';
+    if (/transferts|urssaf_paiements|budgets_mensuels|categories_perso|statut|part_salaire|frequence|univers|exceptionnelle|compte_id|comptes/.test(m)) {
+      app.innerHTML = '<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Une mise à jour est nécessaire</h1><p class="muted">Lance le script « migration v3 » dans l\'éditeur SQL de Supabase, puis recharge cette page.</p></div>';
     } else toast(m || 'Erreur de chargement', true);
   }
 }
 const paid = p => sum(S.pay[p.id] || [], 'montant');
+const persoCats = () => S.data.categories.length ? S.data.categories.map(c => c.nom) : CATS_PERSO_DEFAUT;
+const cname = id => (S.cpt[id] || {}).nom || '';
+
+/* ---------- Règles : charges fixes ---------- */
+const fixesApply = r => r[0] <= monthRange(0)[0] && r[0] >= S.first;
+const dueFixes = (u, r) => S.data.prelevements.filter(p => p.actif && p.univers === u && (p.frequence !== 'annuelle' || +p.mois_annuel === r[2].getMonth() + 1));
+const fixesTotal = (u, r) => fixesApply(r) ? sum(dueFixes(u, r), 'montant') : 0;
 
 /* ---------- Calculs : Eniram ---------- */
-const fixesApply = r => r[0] <= monthRange(0)[0] && r[0] >= S.first;
 function eniMonth(off) {
-  const r = monthRange(off), {paiements, depenses, prelevements, prestas} = S.data;
+  const r = monthRange(off), {paiements, depenses, prestas, reg, transferts} = S.data;
   const pm = paiements.filter(x => inR(x.date_paiement, r));
   const enc = sum(pm, 'montant'), urs = sum(pm, 'urssaf_montant');
   const dpro = sum(depenses.filter(x => x.categorie !== 'perso' && inR(x.date_depense, r)), 'montant');
-  const fixes = fixesApply(r) ? sum(prelevements.filter(p => p.actif && p.univers === 'eniram'), 'montant') : 0;
+  const fixes = fixesTotal('eniram', r);
   const ps = prestas.filter(p => inR(dloc(p.date_prestation), r));
-  const net = enc - urs - dpro - fixes;
-  return {r, pm, enc, urs, dpro, fixes, net, ps, nb:ps.length, panier:ps.length ? sum(ps, 'montant_total') / ps.length : 0, marge:enc > 0 ? net / enc : null};
+  const restant = enc - urs, chargesPro = dpro + fixes;
+  const part = +reg.part_salaire || 0, arr = +reg.arrondi_salaire || 0;
+  const reco = r2(restant * part / 100), sugg = Math.max(0, floorTo(reco, arr));
+  const verse = sum(transferts.filter(x => x.motif === 'salaire' && x.mois === r[0]), 'montant');
+  const net = restant - chargesPro;
+  const salaireRef = verse > 0 ? verse : sugg;
+  return {r, pm, enc, urs, dpro, fixes, restant, chargesPro, part, reco, sugg, verse, salaireRef, partActivite:r2(restant - reco), treso:restant - salaireRef - chargesPro,
+    net, ps, nb:ps.length, panier:ps.length ? sum(ps, 'montant_total') / ps.length : 0, marge:enc > 0 ? net / enc : null};
 }
 
-/* ---------- Calculs : Perso (le résultat Eniram y entre automatiquement) ---------- */
+/* ---------- Calculs : Perso ---------- */
+function budgetOf(r) { return S.data.budgets.find(b => b.mois === r[0]) || null; }
+function potMonth(r) { return sum(S.data.comptes.filter(c => c.versement_mensuel && (!c.reprise_le || r[0] >= c.reprise_le)).map(c => ({v:+c.versement_mensuel})), 'v'); }
+const isEpargne = id => (S.cpt[id] || {}).type === 'epargne';
 function persoMonth(off) {
-  const eni = eniMonth(off), {revenus, depenses, prelevements} = S.data, r = eni.r;
-  const revAutres = revenus.filter(x => inR(x.date_revenu, r));
-  const autres = sum(revAutres, 'montant');
-  const revTot = eni.net + autres;
+  const eni = eniMonth(off), {revenus, depenses, transferts} = S.data, r = eni.r;
+  const rv = revenus.filter(x => inR(x.date_revenu, r));
+  const recus = rv.filter(x => x.statut === 'recu'), attendus = rv.filter(x => x.statut === 'attendu');
+  const salaire = eni.verse;
+  const revRecus = sum(recus, 'montant') + salaire;
+  const revAttendus = sum(attendus, 'montant');
+  const salairePrevu = salaire > 0 ? salaire : eni.sugg;
+  const revPrevus = sum(recus, 'montant') + revAttendus + salairePrevu;
   const dep = depenses.filter(x => x.categorie === 'perso' && inR(x.date_depense, r));
-  const depTot = sum(dep, 'montant');
-  const fixes = fixesApply(r) ? sum(prelevements.filter(p => p.actif && p.univers === 'perso'), 'montant') : 0;
-  const out = depTot + fixes, reste = revTot - out;
-  return {r, eni, revAutres, autres, revTot, dep, depTot, fixes, out, reste, epargne:revTot > 0 ? reste / revTot : null};
+  const ordin = dep.filter(x => !x.exceptionnelle), exc = dep.filter(x => x.exceptionnelle);
+  const depTot = sum(dep, 'montant'), fixes = fixesTotal('perso', r);
+  const bud = budgetOf(r), budgetVie = bud ? +bud.budget_vie : null;
+  const budgetTotal = bud ? +bud.budget_vie + (bud.reserve_debloquee ? +bud.reserve : 0) : null;
+  const spent = sum(ordin, 'montant');
+  const epargne = sum(transferts.filter(x => inR(x.date_transfert, r) && isEpargne(x.compte_dest) && !isEpargne(x.compte_source)), 'montant');
+  const pot = potMonth(r);
+  const fixesPrev = sum(dueFixes('perso', r), 'montant');
+  const epargnePrev = budgetVie == null ? null : revPrevus - fixesPrev - budgetVie - pot;
+  return {r, eni, recus, attendus, salaire, salairePrevu, revRecus, revAttendus, revPrevus, dep, ordin, exc, depTot, fixes, out:depTot + fixes, reste:revRecus - depTot - fixes,
+    bud, budgetVie, budgetTotal, spent, resteBudget:budgetTotal == null ? null : budgetTotal - spent, epargne, tauxEpargne:revRecus > 0 ? epargne / revRecus : null, pot, fixesPrev, epargnePrev};
 }
+const moy = (fn, n) => { const a = []; for (let k = 1; k <= n; k++) a.push(fn(S.monthOffset - k)); return a.reduce((t, x) => t + x, 0) / n; };
 
-/* ---------- Calculs : Comptes ---------- */
+/* ---------- Calculs : comptes et trésorerie ---------- */
 function soldeOf(c, r) {
-  const {paiements, depenses, revenus} = S.data, ok = (d) => !r || inR(d, r);
-  const inn = sum(paiements.filter(x => x.compte_id === c.id && ok(x.date_paiement)), 'montant') + sum(revenus.filter(x => x.compte_id === c.id && ok(x.date_revenu)), 'montant');
-  const out = sum(depenses.filter(x => x.compte_id === c.id && ok(x.date_depense)), 'montant');
+  const {paiements, depenses, revenus, transferts, urssafPay} = S.data, ok = d => !r || inR(d, r);
+  const inn = sum(paiements.filter(x => x.compte_id === c.id && ok(x.date_paiement)), 'montant') + sum(revenus.filter(x => x.compte_id === c.id && x.statut === 'recu' && ok(x.date_revenu)), 'montant')
+    + sum(transferts.filter(x => x.compte_dest === c.id && ok(x.date_transfert)), 'montant');
+  const out = sum(depenses.filter(x => x.compte_id === c.id && ok(x.date_depense)), 'montant') + sum(transferts.filter(x => x.compte_source === c.id && ok(x.date_transfert)), 'montant')
+    + sum(urssafPay.filter(x => x.compte_id === c.id && ok(x.date_paiement)), 'montant');
   return {inn, out, solde:(+c.solde_initial || 0) + inn - out};
 }
-function defaultCompte(moyen) {
-  const type = moyen === 'revolut' ? 'revolut' : moyen === 'especes' ? 'especes' : 'banque';
-  return (S.data.comptes.find(c => c.type === type) || {}).id || '';
+function proTreso() {
+  const {comptes, paiements, urssafPay} = S.data, pro = comptes.filter(c => c.univers === 'pro' && c.type !== 'epargne');
+  const solde = pro.reduce((t, c) => t + soldeOf(c).solde, 0);
+  const urssTotal = sum(paiements, 'urssaf_montant'), urssPaye = sum(urssafPay, 'montant'), reserve = Math.max(0, urssTotal - urssPaye);
+  const today = new Date().getDate();
+  const charges = sum(dueFixes('eniram', monthRange(0)).filter(p => p.jour_du_mois == null || p.jour_du_mois >= today), 'montant');
+  return {pro, solde, urssTotal, urssPaye, reserve, charges, dispo:solde - reserve - charges};
 }
-const compteField = sel => f('Compte', `<select name="compte_id"><option value="">Aucun</option>${opts(S.data.comptes.map(c => [c.id, c.nom]), sel)}</select>`);
+function defaultCompte(moyen) {
+  const {comptes} = S.data, by = f => (comptes.find(f) || {}).id;
+  if (moyen === 'revolut') return by(c => c.type === 'revolut') || by(c => c.univers === 'pro' && c.type === 'banque') || '';
+  if (moyen === 'especes') return by(c => c.type === 'especes') || '';
+  return by(c => c.univers === 'pro' && c.type === 'banque') || by(c => c.type === 'banque') || '';
+}
+const comptePerso = () => (S.data.comptes.find(c => c.univers === 'perso' && c.type === 'banque') || {}).id || '';
+const compteField = (sel, name = 'compte_id', label = 'Compte', vide = 'Aucun') => f(label, `<select name="${name}"><option value="">${vide}</option>${opts(S.data.comptes.map(c => [c.id, c.nom]), sel)}</select>`);
+
+/* ---------- Alertes utiles (pas une par transaction) ---------- */
+function alerts(scope) {
+  const out = [], r0 = monthRange(0), today = new Date().getDate();
+  if (scope === 'perso') {
+    const m = persoMonth(0);
+    if (m.budgetTotal != null && m.budgetTotal > 0) {
+      const p = m.spent / m.budgetTotal;
+      if (p > 1) out.push(['neg', `Budget vie dépassé de ${eur(m.spent - m.budgetTotal)}.`]);
+      else if (p >= .8) out.push(['warn', `${Math.round(p * 100)} % du budget vie consommé, il reste ${eur(m.resteBudget)}.`]);
+    }
+    S.data.revenus.filter(x => x.statut === 'attendu' && x.date_revenu < r0[0]).forEach(x => out.push(['warn', `${x.libelle} attendu en ${monthName(monthRange(0).map((v, i) => i === 2 ? new Date(x.date_revenu + 'T12:00:00') : v))} et pas encore reçu.`]));
+    S.data.prelevements.filter(p => p.actif && p.univers === 'perso' && p.jour_du_mois != null && p.jour_du_mois >= today && p.jour_du_mois <= today + 3 && (p.frequence !== 'annuelle' || +p.mois_annuel === r0[2].getMonth() + 1))
+      .forEach(p => out.push(['info', `${p.libelle} (${eur(p.montant)}) prélevé le ${p.jour_du_mois}.`]));
+  } else {
+    const t = proTreso();
+    if (t.pro.length && t.dispo < 0) out.push(['warn', `Trésorerie pro disponible négative : ${eur(t.dispo)} une fois l'URSSAF et les charges réservées.`]);
+    if (t.reserve > 0) out.push(['info', `${eur(t.reserve)} d'URSSAF à garder de côté.`]);
+  }
+  return out;
+}
+const alertsHtml = a => a.length ? `<section><div class="sec-head"><h2>À surveiller</h2></div>${a.map(([k, t]) => `<p class="alert ${k}">${esc(t)}</p>`).join('')}</section>` : '';
 
 /* ---------- Petits composants de lecture ---------- */
 function delta(cur, prev) {
@@ -317,11 +389,7 @@ function hbars(items, fmtv = eur) {
   return items.map(([l, v, s]) => `<div class="hb"><div class="row2"><span>${esc(l)}</span><span class="num">${fmtv(v)}${s ? `<small class="muted"> ${s}</small>` : ''}</span></div>
     <div class="track"><i style="width:${Math.max(2, v / max * 100)}%"></i></div></div>`).join('');
 }
-function niceMax(m) {
-  const p = Math.pow(10, Math.floor(Math.log10(m)));
-  return [1, 2, 5, 10].map(k => k * p).find(v => v >= m) || m;
-}
-/* Barres verticales fines, 1 ou 2 séries, info-bulle au survol, tableau en dessous */
+function niceMax(m) { const p = Math.pow(10, Math.floor(Math.log10(m))); return [1, 2, 5, 10].map(k => k * p).find(v => v >= m) || m; }
 function chartBars(labels, series, title) {
   const W = 420, H = 220, pl = 48, pr = 8, pt = 16, pb = 28, iw = W - pl - pr, ih = H - pt - pb;
   const max = niceMax(Math.max(1, ...series.flatMap(s => s.values.map(v => Math.max(0, v)))));
@@ -347,6 +415,7 @@ function chartBars(labels, series, title) {
 }
 const sixMonths = fn => { const offs = [-5, -4, -3, -2, -1, 0].map(k => S.monthOffset + k); return {labels:offs.map(o => monthShort(monthRange(o))), vals:offs.map(fn)}; };
 const monthNav = () => `<div class="mn"><div class="monthnav"><button data-act="month" data-d="-1" aria-label="Mois précédent">‹</button><span>${monthName(monthRange(S.monthOffset))}</span><button data-act="month" data-d="1" aria-label="Mois suivant">›</button></div></div>`;
+const partialNote = () => S.monthOffset === 0 ? `<p class="muted small">Le mois est en cours (jour ${new Date().getDate()}) : les montants du mois ne sont pas encore complets.</p>` : '';
 /* ---------- Fenêtre de saisie ---------- */
 function modal(title, body, onSubmit, label = 'Enregistrer') {
   const dlg = $('#dlg');
@@ -393,31 +462,52 @@ function clientes() {
 /* ---------- Vues Eniram ---------- */
 function eniHome() {
   const {reg, prestas, paiements} = S.data, y = new Date().getFullYear();
-  const m = eniMonth(S.monthOffset), pv = eniMonth(S.monthOffset - 1);
+  const m = eniMonth(S.monthOffset), pv = eniMonth(S.monthOffset - 1), tr = proTreso();
   const six = sixMonths(o => eniMonth(o));
   const sold = prestas.filter(p => +p.montant_total - paid(p) > 0.009).slice(0, 5);
-
   const types = {}; m.ps.forEach(p => { const t = types[p.type_prestation] ??= {n:0, ca:0}; t.n++; t.ca += +p.montant_total; });
   const topTypes = Object.entries(types).sort((a, b) => b[1].n - a[1].n || b[1].ca - a[1].ca).slice(0, 5).map(([k, v]) => [k, v.n, eur(v.ca)]);
-
   const ids = [...new Set(m.ps.map(p => p.cliente_id))];
   const retour = ids.filter(id => prestas.some(p => p.cliente_id === id && dloc(p.date_prestation) < m.r[0])).length;
   const totalC = {}; prestas.forEach(p => { totalC[p.cliente_id] = (totalC[p.cliente_id] || 0) + paid(p); });
   const top = Object.entries(totalC).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id, v]) => [S.cmap[id]?.nom || '?', v]);
-
   const byMoyen = Object.entries(MOYENS).map(([k, l]) => [l, sum(m.pm.filter(x => x.moyen === k), 'montant')]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  const caY = sum(paiements.filter(x => inR(x.date_paiement, [`${y}-01-01`, `${y}-12-31`])), 'montant');
+  const firstY = paiements.filter(x => x.date_paiement.startsWith(String(y))).map(x => x.date_paiement).sort()[0];
+  const nMois = firstY ? new Date().getMonth() - (+firstY.slice(5, 7) - 1) + 1 : 1;
+  const plaf = +reg.plafond_ca || 0, pp = plaf > 0 ? Math.min(100, caY / plaf * 100) : 0;
+  const avg3 = moy(o => eniMonth(o).enc, 3);
+  const vs = m.verse > 0 ? 'versé' : 'proposé';
 
-  const ca = sum(paiements.filter(x => inR(x.date_paiement, [`${y}-01-01`, `${y}-12-31`])), 'montant');
-  const plaf = +reg.plafond_ca || 0, pp = plaf > 0 ? Math.min(100, ca / plaf * 100) : 0;
-
-  return `${monthNav()}
+  return `${monthNav()}${alertsHtml(alerts('eniram'))}
   <section class="hero"><p class="lead">Encaissé en ${monthName(m.r)}</p><p class="big num">${eur(m.enc)}</p>${delta(m.enc, pv.enc)}
-    <p class="sub num">dont ${eur(m.urs)} à mettre de côté pour l'URSSAF</p></section>
+    <p class="sub num">dont ${eur(m.urs)} à mettre de côté pour l'URSSAF</p>${partialNote()}</section>
+  <section><div class="sec-head"><h2>Répartition du mois</h2></div>
+    <div class="row"><span>Chiffre d'affaires encaissé</span><span class="num">${eur(m.enc)}</span></div>
+    <div class="row"><span>URSSAF à ${reg.taux_urssaf} %</span><span class="num">−${eur(m.urs)}</span></div>
+    <div class="row"><b>Reste après URSSAF</b><b class="num">${eur(m.restant)}</b></div>
+    <div class="row"><span>Salaire perso à ${m.part} %</span><span class="num">${eur(m.reco)}</span></div>
+    <div class="row"><span>Part activité à ${r2(100 - m.part)} %</span><span class="num">${eur(m.partActivite)}</span></div>
+    <div class="row"><span>Salaire ${vs}</span><span class="num">−${eur(m.salaireRef)}</span></div>
+    <div class="row"><span>Charges pro du mois${m.chargesPro ? ` (dont ${eur(m.fixes)} fixes)` : ''}</span><span class="num">−${eur(m.chargesPro)}</span></div>
+    <div class="row total"><span>Trésorerie pro restante</span><span class="num ${m.treso < 0 ? 'neg' : ''}">${eur(m.treso)}</span></div>
+    <p class="muted small" style="margin-top:8px">Ce montant est calculé sur le mois. Le solde réel vient des comptes, plus bas.</p>
+    <div style="margin-top:14px"><button class="btn" data-act="newSalaire">Verser mon salaire</button></div></section>
+  <section><div class="sec-head"><h2>Trésorerie professionnelle</h2></div>
+    ${tr.pro.length ? `<div class="row"><span>Solde réel des comptes pro</span><span class="num">${eur(tr.solde)}</span></div>
+    <div class="row"><span>URSSAF à réserver (cumul ${eur(tr.urssTotal)}, payé ${eur(tr.urssPaye)})</span><span class="num">−${eur(tr.reserve)}</span></div>
+    <div class="row"><span>Charges fixes restantes ce mois-ci</span><span class="num">−${eur(tr.charges)}</span></div>
+    <div class="row total"><span>Réellement disponible</span><span class="num ${tr.dispo < 0 ? 'neg' : ''}">${eur(tr.dispo)}</span></div>
+    <p class="muted small" style="margin-top:8px">Tu peux te verser jusqu'à ${eur(Math.max(0, tr.dispo))} sans entamer l'URSSAF ni les charges.</p>`
+    : '<p class="empty">Aucun compte professionnel. Ajoute-le dans Comptes pour suivre la trésorerie réelle.</p>'}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn ghost sm" data-act="newUrssaf">URSSAF payée</button><button class="btn ghost sm" data-act="goComptes">Voir les comptes</button></div></section>
   <div class="kpis">
     ${kpi('Résultat net', eur(m.net), `<small>après URSSAF et charges</small>${delta(m.net, pv.net)}`, m.net < 0 ? 'neg' : '')}
     ${kpi('Prestations', m.nb, delta(m.nb, pv.nb))}
     ${kpi('Panier moyen', eur(m.panier), delta(m.panier, pv.panier))}
     ${kpi('Marge', m.marge == null ? '—' : Math.round(m.marge * 100) + ' %', '<small>ce qu\'il te reste sur chaque euro encaissé</small>')}
+    ${kpi('CA ' + y, eur(caY), `<small>moyenne ${eur(caY / Math.max(1, nMois))} par mois</small>`)}
+    ${kpi('Moyenne 3 mois', eur(avg3), `<small>le mois en cours : ${eur(m.enc)}</small>`)}
   </div>
   <section><div class="sec-head"><h2>Six mois</h2></div>
     ${chartBars(six.labels, [{name:'Encaissé', color:'var(--s1)', values:six.vals.map(v => v.enc)}, {name:'Résultat net', color:'var(--s2)', values:six.vals.map(v => v.net)}], 'Encaissé et résultat net sur six mois')}</section>
@@ -432,48 +522,58 @@ function eniHome() {
   ${sold.length ? `<section><div class="sec-head"><h2>Soldes à encaisser</h2></div>
     ${sold.map(p => `<button class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(S.cmap[p.cliente_id]?.nom)}</b><small>${esc(p.type_prestation)}, ${dFR(p.date_prestation)}</small></span>
       <span class="i-side num warn">${eur(+p.montant_total - paid(p))}</span></button>`).join('')}</section>` : ''}
-  ${plaf > 0 ? `<section><div class="sec-head"><h2>Plafond ${y}</h2><span class="num muted">${eur(ca)} sur ${eur(plaf)}</span></div>
+  ${plaf > 0 ? `<section><div class="sec-head"><h2>Plafond ${y}</h2><span class="num muted">${eur(caY)} sur ${eur(plaf)}</span></div>
     <div class="bar slim" role="img" aria-label="${Math.round(pp)} % du plafond atteint"><i style="width:${pp}%"></i></div>
-    <p class="small ${pp >= 85 ? 'warn' : 'muted'}">${pp >= 85 ? 'Tu approches du plafond de chiffre d\'affaires.' : `Il reste ${eur(plaf - ca)} avant le plafond.`}</p></section>` : ''}
-  <section><button class="btn ghost" data-act="goComptes">Voir les comptes</button></section>`;
+    <p class="small ${pp >= 85 ? 'warn' : 'muted'}">${pp >= 85 ? 'Tu approches du plafond de chiffre d\'affaires.' : `Il reste ${eur(plaf - caY)} avant le plafond.`}</p></section>` : ''}`;
 }
 
 function depenses() {
   const mr = monthRange(S.monthOffset);
   const list = S.data.depenses.filter(x => x.categorie !== 'perso' && inR(x.date_depense, mr));
   const pro = sum(list, 'montant'), fourn = sum(list.filter(x => ['fournitures', 'investissement'].includes(x.categorie)), 'montant'), pub = sum(list.filter(x => x.categorie === 'pub'), 'montant');
+  const fixes = fixesTotal('eniram', mr);
   return `<section><div class="sec-head"><h2>Dépenses pro</h2><button class="btn sm" data-act="newDep" data-u="eniram">Nouvelle dépense</button></div>
   ${monthNav()}
-  <div class="row"><span>Total</span><span class="num">${eur(pro)}</span></div>
+  <div class="row"><span>Dépenses saisies</span><span class="num">${eur(pro)}</span></div>
   <div class="row"><span>dont fournitures et investissements</span><span class="num">${eur(fourn)}</span></div>
   <div class="row"><span>dont publicité</span><span class="num">${eur(pub)}</span></div>
-  <div style="margin-top:18px">${list.length ? list.map(x => `<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>${CATS_PRO[x.categorie] || x.categorie}, ${dFR(x.date_depense)}${x.moyen ? ', ' + MOYENS[x.moyen] : ''}</small></span>
+  <div class="row"><span>Charges fixes prévues (RC Pro...)</span><span class="num">${eur(fixes)}</span></div>
+  <div style="margin-top:18px">${list.length ? list.map(x => `<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>${CATS_PRO[x.categorie] || x.categorie}, ${dFR(x.date_depense)}${x.compte_id ? ', ' + esc(cname(x.compte_id)) : ''}</small></span>
     <span class="i-side num">${eur(x.montant)}</span><button class="x" data-act="delDep" data-id="${x.id}" aria-label="Supprimer">×</button></div>`).join('')
     : '<p class="empty">Aucune dépense pro ce mois-ci.</p>'}</div></section>`;
 }
 
 function prelBlock(u) {
   const list = S.data.prelevements.filter(p => p.univers === u);
-  const help = u === 'eniram' ? 'Comptés chaque mois dans ton résultat Eniram.' : 'Déduits de ton reste du mois. L\'enveloppe ne compte que les dépenses du quotidien.';
-  return `<section><div class="sec-head"><h2>Prélèvements fixes</h2><button class="btn sm" data-act="newPrel" data-u="${u}">Ajouter</button></div>
+  const mens = sum(list.filter(p => p.actif && p.frequence !== 'annuelle'), 'montant'), ann = list.filter(p => p.actif && p.frequence === 'annuelle');
+  const help = u === 'eniram' ? 'Comptées chaque mois dans ton résultat Eniram.' : 'Déduites de ton reste du mois, pas du budget vie.';
+  return `<section><div class="sec-head"><h2>Charges fixes</h2><button class="btn sm" data-act="newPrel" data-u="${u}">Ajouter</button></div>
   <p class="muted small">${help}</p>
-  ${list.length ? list.map(p => `<div class="item"><span class="i-main"><b>${esc(p.libelle)}</b><small>Le ${p.jour_du_mois} du mois, ${p.actif ? 'actif' : 'suspendu'}</small></span>
+  <div class="row"><span>Total mensuel</span><span class="num">${eur(mens)}</span></div>
+  ${ann.length ? `<div class="row"><span>Charges annuelles</span><span class="num">${eur(sum(ann, 'montant'))}</span></div>` : ''}
+  ${list.length ? list.map(p => `<div class="item"><span class="i-main"><b>${esc(p.libelle)}</b><small>${p.frequence === 'annuelle' ? 'Annuelle, en ' + new Date(2000, (p.mois_annuel || 1) - 1, 1).toLocaleDateString('fr-FR', {month:'long'}) : 'Mensuelle'}, ${p.jour_du_mois ? 'le ' + p.jour_du_mois : 'jour à préciser'}, ${p.actif ? 'actif' : 'suspendu'}</small></span>
     <span class="i-side num">${eur(p.montant)}</span>
+    <button class="btn ghost sm" data-act="editPrel" data-id="${p.id}">Modifier</button>
     <button class="btn ghost sm" data-act="togglePrel" data-id="${p.id}">${p.actif ? 'Suspendre' : 'Réactiver'}</button>
-    <button class="x" data-act="delPrel" data-id="${p.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucun prélèvement fixe.</p>'}</section>`;
+    <button class="x" data-act="delPrel" data-id="${p.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucune charge fixe.</p>'}</section>`;
 }
 
 function eniPlus() {
-  const {reg, produits, campagnes, paiements} = S.data;
+  const {reg, produits, campagnes, paiements, urssafPay} = S.data;
   const actifs = produits.filter(p => !p.date_fin), finis = produits.filter(p => p.date_fin && p.date_achat);
   const vie = {}; finis.forEach(p => { (vie[p.nom] ??= []).push(dayDiff(p.date_achat, p.date_fin)); });
   const caSur = (a, b) => sum(paiements.filter(x => inR(x.date_paiement, [a, b])), 'montant');
   return `<section><h2>Réglages Eniram</h2>
   <form id="regf" style="margin-top:14px">
-    ${f('Taux URSSAF (%)', `<input name="taux" type="number" step="0.01" min="0" max="100" required value="${reg.taux_urssaf}">`)}
-    ${f('Plafond de chiffre d\'affaires annuel (€, facultatif)', `<input name="plafond" type="number" step="0.01" min="0" value="${reg.plafond_ca ?? ''}">`)}
+    <div class="two">${f('Taux URSSAF (%)', `<input name="taux" type="number" step="0.01" min="0" max="100" required value="${reg.taux_urssaf}">`)}
+    ${f('Part salaire perso (%)', `<input name="part" type="number" step="0.01" min="0" max="100" required value="${reg.part_salaire}">`)}</div>
+    <div class="two">${f('Arrondi du salaire (€)', `<input name="arrondi" type="number" step="1" min="0" value="${reg.arrondi_salaire}">`)}
+    ${f('Plafond annuel de CA (€)', `<input name="plafond" type="number" step="0.01" min="0" value="${reg.plafond_ca ?? ''}">`)}</div>
     <button class="btn" style="margin-top:18px">Enregistrer</button>
   </form></section>
+  <section><div class="sec-head"><h2>URSSAF payée</h2><button class="btn sm" data-act="newUrssaf">Ajouter</button></div>
+  ${urssafPay.length ? urssafPay.slice(0, 12).map(u => `<div class="item"><span class="i-main"><b>${esc(u.periode || 'Paiement URSSAF')}</b><small>${dFR(u.date_paiement)}${u.compte_id ? ', ' + esc(cname(u.compte_id)) : ''}</small></span>
+    <span class="i-side num">${eur(u.montant)}</span><button class="x" data-act="delUrssaf" data-id="${u.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucun paiement URSSAF enregistré.</p>'}</section>
   ${prelBlock('eniram')}
   <section><div class="sec-head"><h2>Produits</h2><button class="btn sm" data-act="newProd">Nouveau produit</button></div>
   ${Object.keys(vie).length ? `<p class="muted small" style="margin-bottom:6px">Durée de vie moyenne : ${Object.entries(vie).map(([n, a]) => `${esc(n)} ${Math.round(a.reduce((t, x) => t + x, 0) / a.length)} j`).join(', ')}</p>` : ''}
@@ -488,93 +588,142 @@ function eniPlus() {
       <small>Chiffre d'affaires ${eur(pendant)} pendant, ${eur(avant)} sur la même durée avant : <span class="${diff >= 0 ? 'ok' : 'neg'}">${diff >= 0 ? '+' : ''}${eur(diff)}</span></small>
       ${roi != null ? `<small>${roi >= 0 ? 'Chaque euro de pub a rapporté' : 'Chaque euro de pub a fait perdre'} ${Math.abs(roi).toFixed(1).replace('.', ',')} € de chiffre d'affaires en plus ou en moins</small>` : ''}</span>
       <button class="x" data-act="delPub" data-id="${c.id}" aria-label="Supprimer">×</button></div>`;
-  }).join('') : '<p class="empty">Aucune campagne. Ajoutes-en une pour comparer ton chiffre d\'affaires avec et sans pub.</p>'}</section>`;
+  }).join('') : '<p class="empty">Aucune campagne. Ajoutes-en une pour comparer ton chiffre d\'affaires avec et sans pub.</p>'}</section>
+  <section><button class="btn ghost" data-act="exportCsv">Exporter mes données (CSV)</button></section>`;
 }
 
 /* ---------- Vues Perso ---------- */
 function persoHome() {
-  const {reg, depenses, prelevements} = S.data;
-  const env = reg.enveloppe_periode === 'semaine' ? weekRange() : monthRange(0);
-  const spent = sum(depenses.filter(x => x.categorie === 'perso' && inR(x.date_depense, env)), 'montant');
-  const budget = +reg.enveloppe_montant || 0, left = budget - spent, pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0;
-  const per = reg.enveloppe_periode === 'semaine' ? 'cette semaine' : 'ce mois-ci';
-  const hero = budget > 0
-    ? `<section class="hero"><p class="lead">Il te reste ${per}</p><p class="big num ${left < 0 ? 'neg' : ''}">${eur(left)}</p>
-       <div class="bar" role="img" aria-label="${Math.round(pct)} % de l'enveloppe dépensée"><i style="width:${pct}%"></i></div>
-       <p class="sub num">${eur(spent)} dépensés sur ${eur(budget)}</p>
-       <button class="btn" data-act="newDep" data-u="perso">Noter une dépense</button></section>`
-    : `<section class="hero"><p class="lead">Ton enveloppe</p><p class="sub" style="margin-top:8px">Choisis un montant pour voir ce qu'il te reste à dépenser.</p>
-       <button class="btn" data-act="tab" data-k="plus">Ouvrir les réglages</button></section>`;
-
-  const m = persoMonth(S.monthOffset), pv = persoMonth(S.monthOffset - 1);
-  const six = sixMonths(o => persoMonth(o));
-  const cats = {}; m.dep.forEach(x => { const k = x.sous_categorie || 'Autre'; cats[k] = (cats[k] || 0) + +x.montant; });
+  const m = persoMonth(S.monthOffset), pv = persoMonth(S.monthOffset - 1), six = sixMonths(o => persoMonth(o));
+  const cur = S.monthOffset === 0;
+  let hero;
+  if (m.budgetTotal == null) {
+    hero = `<section class="hero"><p class="lead">Budget vie de ${monthName(m.r)}</p><p class="sub" style="margin-top:8px">Aucun budget défini pour ce mois. Choisis-en un pour voir ce qu'il te reste.</p>
+      <button class="btn" data-act="budgetForm">Définir le budget</button></section>`;
+  } else {
+    const left = m.resteBudget, pct = m.budgetTotal > 0 ? Math.min(100, m.spent / m.budgetTotal * 100) : 0;
+    const day = new Date().getDate(), dim = new Date(m.r[2].getFullYear(), m.r[2].getMonth() + 1, 0).getDate();
+    const proj = cur && m.spent > 0 ? m.spent / day * dim : null;
+    hero = `<section class="hero"><p class="lead">Budget vie restant en ${monthName(m.r)}</p><p class="big num ${left < 0 ? 'neg' : ''}">${eur(left)}</p>
+      <div class="bar" role="img" aria-label="${Math.round(pct)} % du budget consommé"><i style="width:${pct}%"></i></div>
+      <p class="sub num">${eur(m.spent)} dépensés sur ${eur(m.budgetTotal)}${m.bud.reserve_debloquee ? ' (réserve débloquée)' : ''}</p>
+      ${proj != null ? `<p class="sub num">Au rythme actuel : ${eur(proj)} en fin de mois${proj > m.budgetTotal ? ', au-dessus du budget' : ''}.</p>` : ''}
+      ${m.exc.length ? `<p class="sub num">${eur(sum(m.exc, 'montant'))} de dépenses exceptionnelles non comptées dans le budget.</p>` : ''}
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-act="newDep" data-u="perso">Noter une dépense</button>
+      ${+m.bud.reserve > 0 && !m.bud.reserve_debloquee ? `<button class="btn ghost" data-act="reserve" data-m="${m.r[0]}">Débloquer la réserve (${eur(m.bud.reserve)})</button>` : ''}
+      <button class="btn ghost" data-act="budgetForm">Modifier le budget</button></div></section>`;
+  }
+  const cats = {}; m.dep.forEach(x => { const k = x.sous_categorie || 'Dépenses diverses'; cats[k] = (cats[k] || 0) + +x.montant; });
   const catList = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  const topDep = m.dep.slice().sort((a, b) => b.montant - a.montant).slice(0, 3);
   const today = new Date().getDate();
-  const next = prelevements.filter(p => p.actif && p.univers === 'perso' && p.jour_du_mois >= today);
+  const next = dueFixes('perso', m.r).slice().sort((a, b) => (a.jour_du_mois ?? 99) - (b.jour_du_mois ?? 99));
+  const vieFn = o => persoMonth(o).spent;
+  const cmp = [['Mois précédent', vieFn(S.monthOffset - 1)], ['Moyenne 3 mois', moy(vieFn, 3)], ['Moyenne 6 mois', moy(vieFn, 6)]];
+  const prevu = m.epargnePrev;
 
-  return `${hero}
-  <section>${monthNav()}
-  <div class="kpis" style="margin-top:0">
-    ${kpi('Revenus', eur(m.revTot), `<small>dont ${eur(m.eni.net)} d'Eniram</small>${delta(m.revTot, pv.revTot)}`)}
-    ${kpi('Dépenses', eur(m.out), `<small>dont ${eur(m.fixes)} de prélèvements fixes</small>${delta(m.out, pv.out)}`)}
-    ${kpi('Reste du mois', eur(m.reste), delta(m.reste, pv.reste), m.reste < 0 ? 'neg' : '')}
-    ${kpi('Épargne', m.epargne == null ? '—' : Math.round(m.epargne * 100) + ' %', '<small>de tes revenus mis de côté</small>')}
-  </div></section>
+  return `${monthNav()}${alertsHtml(alerts('perso'))}${hero}
+  <div class="kpis">
+    ${kpi('Revenus reçus', eur(m.revRecus), `<small>${m.revAttendus > 0 ? eur(m.revAttendus) + ' encore attendus' : 'rien d\'attendu'}</small>${delta(m.revRecus, pv.revRecus)}`)}
+    ${kpi('Dépenses', eur(m.out), `<small>dont ${eur(m.fixes)} de charges fixes</small>${delta(m.out, pv.out)}`)}
+    ${kpi('Épargne du mois', eur(m.epargne), `<small>versée sur les comptes d'épargne</small>`)}
+    ${kpi('Taux d\'épargne', m.tauxEpargne == null ? '—' : Math.round(m.tauxEpargne * 100) + ' %', '<small>de tes revenus reçus</small>')}
+  </div>
+  <section><div class="sec-head"><h2>Prévision du mois</h2></div>
+    <div class="row"><span>Revenus prévus (reçus, attendus, salaire ${m.salaire > 0 ? 'versé' : 'proposé'})</span><span class="num">${eur(m.revPrevus)}</span></div>
+    <div class="row"><span>Charges fixes</span><span class="num">${m.fixesPrev > 0 ? '−' : ''}${eur(m.fixesPrev)}</span></div>
+    <div class="row"><span>Budget vie</span><span class="num">${m.budgetVie == null ? '—' : '−' + eur(m.budgetVie)}</span></div>
+    <div class="row"><span>Pot vacances</span><span class="num">${m.pot > 0 ? '−' : ''}${eur(m.pot)}</span></div>
+    <div class="row total"><span>Épargne prévisionnelle</span><span class="num">${prevu == null ? '—' : eur(prevu)}</span></div>
+    ${prevu != null && m.bud && +m.bud.reserve > 0 && !m.bud.reserve_debloquee ? `<p class="muted small" style="margin-top:8px">${eur(prevu - m.bud.reserve)} si la réserve de ${eur(m.bud.reserve)} est utilisée.</p>` : ''}
+    <p class="muted small" style="margin-top:8px">Recalculé à partir de ce qui est réellement enregistré. Tant qu'un revenu n'est pas reçu, il reste prévisionnel.</p></section>
   <section><div class="sec-head"><h2>Six mois</h2></div>
-    ${chartBars(six.labels, [{name:'Revenus', color:'var(--s1)', values:six.vals.map(v => v.revTot)}, {name:'Dépenses', color:'var(--s2)', values:six.vals.map(v => v.out)}], 'Revenus et dépenses sur six mois')}</section>
+    ${chartBars(six.labels, [{name:'Revenus reçus', color:'var(--s1)', values:six.vals.map(v => v.revRecus)}, {name:'Dépenses', color:'var(--s2)', values:six.vals.map(v => v.out)}], 'Revenus et dépenses sur six mois')}</section>
+  <section><div class="sec-head"><h2>Budget vie comparé</h2></div>
+    <div class="row"><span>Ce mois-ci${cur ? ' (en cours)' : ''}</span><span class="num">${eur(m.spent)}</span></div>
+    ${cmp.map(([l, v]) => `<div class="row"><span>${l}</span><span class="num">${eur(v)}</span></div>`).join('')}
+    ${cur ? '<p class="muted small" style="margin-top:8px">Le mois en cours est incomplet : il sera plus bas que les mois terminés.</p>' : ''}</section>
   <section><div class="sec-head"><h2>Où part l'argent</h2></div>
-    ${catList.length ? hbars(catList) : '<p class="empty">Aucune dépense perso ce mois-ci.</p>'}</section>
+    ${catList.length ? hbars(catList) : '<p class="empty">Aucune dépense ce mois-ci.</p>'}
+    ${topDep.length ? `<h3 style="margin-top:18px">Plus grosses dépenses</h3>${topDep.map(x => `<div class="row"><span>${esc(x.libelle)}<small class="muted"> ${dFR(x.date_depense)}</small></span><span class="num">${eur(x.montant)}</span></div>`).join('')}` : ''}</section>
   <section><div class="sec-head"><h2>D'où vient l'argent</h2></div>
-    <div class="row"><span>Eniram, résultat du mois<span class="tag">automatique</span></span><span class="num ${m.eni.net < 0 ? 'neg' : ''}">${eur(m.eni.net)}</span></div>
-    ${m.revAutres.map(x => `<div class="row"><span>${esc(x.libelle)}</span><span class="num">${eur(x.montant)}</span></div>`).join('')}
-    <div class="row total"><span>Total</span><span class="num">${eur(m.revTot)}</span></div></section>
-  ${next.length ? `<section><div class="sec-head"><h2>Prélèvements à venir</h2><span class="num muted">${eur(sum(next, 'montant'))}</span></div>
-    ${next.map(p => `<div class="row"><span>${esc(p.libelle)}<small class="muted"> le ${p.jour_du_mois}</small></span><span class="num">${eur(p.montant)}</span></div>`).join('')}</section>` : ''}`;
+    ${m.salaire > 0 || m.eni.sugg > 0 ? `<div class="row"><span>Salaire Eniram${m.salaire > 0 ? '' : ' (proposé, pas encore versé)'}</span><span class="num">${eur(m.salairePrevu)}</span></div>` : ''}
+    ${m.r && S.data.revenus.filter(x => inR(x.date_revenu, m.r) && x.statut !== 'annule').map(x => `<div class="row"><span>${esc(x.libelle)}<span class="tag">${x.statut === 'recu' ? 'reçu' : 'attendu'}</span></span><span class="num">${eur(x.montant)}</span></div>`).join('')}
+    <div class="row total"><span>Prévu</span><span class="num">${eur(m.revPrevus)}</span></div></section>
+  ${cur && next.length ? `<section><div class="sec-head"><h2>Charges fixes du mois</h2><span class="num muted">${eur(sum(next, 'montant'))}</span></div>
+    ${next.map(p => `<div class="row"><span>${esc(p.libelle)}<small class="muted"> ${p.jour_du_mois ? 'le ' + p.jour_du_mois : 'jour à préciser'}</small></span><span class="num">${eur(p.montant)}</span></div>`).join('')}</section>` : ''}`;
 }
 
 function mouvements() {
-  const m = persoMonth(S.monthOffset);
+  const m = persoMonth(S.monthOffset), r = m.r, {revenus, transferts} = S.data;
   const items = [
-    ...m.dep.map(x => ({d:x.date_depense, h:`<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>${esc(x.sous_categorie || 'Autre')}, ${dFR(x.date_depense)}</small></span>
+    ...m.dep.map(x => ({d:x.date_depense, h:`<div class="item"><span class="i-main"><b>${esc(x.libelle)}${x.exceptionnelle ? '<span class="tag">exceptionnelle</span>' : ''}</b><small>${esc(x.sous_categorie || 'Dépenses diverses')}, ${dFR(x.date_depense)}${x.compte_id ? ', ' + esc(cname(x.compte_id)) : ''}</small></span>
       <span class="i-side num">−${eur(x.montant)}</span><button class="x" data-act="delDep" data-id="${x.id}" aria-label="Supprimer">×</button></div>`})),
-    ...m.revAutres.map(x => ({d:x.date_revenu, h:`<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>Revenu, ${dFR(x.date_revenu)}</small></span>
-      <span class="i-side num pos">+${eur(x.montant)}</span><button class="x" data-act="delChom" data-id="${x.id}" aria-label="Supprimer">×</button></div>`}))
+    ...revenus.filter(x => inR(x.date_revenu, r) && x.statut !== 'annule').map(x => ({d:x.date_revenu, h:`<div class="item"><span class="i-main"><b>${esc(x.libelle)}<span class="tag">${x.statut === 'recu' ? 'reçu' : 'attendu'}</span></b><small>${SOURCES[x.source] || 'Revenu'}${x.statut === 'recu' ? ', ' + dFR(x.date_revenu) : ''}${x.compte_id ? ', ' + esc(cname(x.compte_id)) : ''}</small></span>
+      <span class="i-side num ${x.statut === 'recu' ? 'pos' : 'muted'}">+${eur(x.montant)}</span>
+      ${x.statut === 'attendu' ? `<button class="btn ghost sm" data-act="recevoir" data-id="${x.id}">Reçu</button>` : ''}<button class="x" data-act="delChom" data-id="${x.id}" aria-label="Supprimer">×</button></div>`})),
+    ...transferts.filter(x => inR(x.date_transfert, r)).map(x => ({d:x.date_transfert, h:`<div class="item"><span class="i-main"><b>${esc(x.libelle || (x.motif === 'salaire' ? 'Salaire Eniram' : 'Transfert'))}<span class="tag">transfert</span></b><small>${esc(cname(x.compte_source) || '?')} vers ${esc(cname(x.compte_dest) || '?')}, ${dFR(x.date_transfert)}</small></span>
+      <span class="i-side num muted">${eur(x.montant)}</span><button class="x" data-act="delTransfert" data-id="${x.id}" aria-label="Supprimer">×</button></div>`}))
   ].sort((a, b) => a.d < b.d ? 1 : -1);
   return `<section><div class="sec-head"><h2>Mouvements</h2></div>${monthNav()}
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" data-act="newDep" data-u="perso">Nouvelle dépense</button><button class="btn ghost sm" data-act="newChom">Nouveau revenu</button></div>
-  <div class="item" style="cursor:default"><span class="i-main"><b>Eniram, résultat du mois<span class="tag">automatique</span></b><small>Calculé depuis les prestations</small></span><span class="i-side num ${m.eni.net < 0 ? 'neg' : 'pos'}">${m.eni.net >= 0 ? '+' : '−'}${eur(Math.abs(m.eni.net))}</span></div>
-  ${items.length ? items.map(i => i.h).join('') : '<p class="empty">Aucune dépense ni revenu noté ce mois-ci.</p>'}</section>`;
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" data-act="newDep" data-u="perso">Dépense</button><button class="btn ghost sm" data-act="newChom">Revenu</button><button class="btn ghost sm" data-act="newTransfert">Transfert</button></div>
+  <p class="muted small">Les transferts entre comptes ne comptent ni comme revenu ni comme dépense.</p>
+  ${items.length ? items.map(i => i.h).join('') : '<p class="empty">Aucun mouvement ce mois-ci.</p>'}</section>`;
+}
+
+function epargne() {
+  const {comptes} = S.data, ep = comptes.filter(c => c.type === 'epargne'), rows = ep.map(c => ({c, s:soldeOf(c).solde}));
+  const total = sum(rows.map(x => ({v:x.s})), 'v'), m = persoMonth(S.monthOffset);
+  const six = sixMonths(o => persoMonth(o));
+  return `${monthNav()}
+  <section class="hero"><p class="lead">Épargne totale</p><p class="big num">${eur(total)}</p>
+    <p class="sub num">${eur(m.epargne)} versés en ${monthName(m.r)}${m.tauxEpargne != null ? `, soit ${Math.round(m.tauxEpargne * 100)} % de tes revenus reçus` : ''}</p>
+    <button class="btn" data-act="newTransfert" data-epargne="1">Verser sur l'épargne</button></section>
+  <section><div class="sec-head"><h2>Mes épargnes</h2><button class="btn sm" data-act="newCompte" data-ep="1">Ajouter</button></div>
+  ${rows.length ? rows.map(({c, s}) => {
+    const pct = +c.objectif > 0 ? Math.min(100, s / +c.objectif * 100) : null;
+    const plan = c.versement_mensuel ? `${eur(c.versement_mensuel)} par mois${c.reprise_le ? ' à partir de ' + new Date(c.reprise_le + 'T12:00:00').toLocaleDateString('fr-FR', {month:'long', year:'numeric'}) : ''}` : '';
+    return `<button class="item" data-act="editCompte" data-id="${c.id}" style="flex-wrap:wrap"><span class="i-main"><b>${esc(c.nom)}</b><small>${EPARGNE_TYPES[c.epargne_type] || 'Épargne'}${plan ? ', ' + plan : ''}</small></span>
+      <span class="i-side num">${eur(s)}${pct != null ? `<small>${Math.round(pct)} % de ${eur(c.objectif)}</small>` : ''}</span>
+      ${pct != null ? `<span class="bar slim" style="flex-basis:100%" role="img" aria-label="${Math.round(pct)} % de l'objectif"><i style="width:${pct}%"></i></span>` : ''}</button>`;
+  }).join('') : '<p class="empty">Aucun compte d\'épargne.</p>'}</section>
+  <section><div class="sec-head"><h2>Versements des six derniers mois</h2></div>
+    ${chartBars(six.labels, [{name:'Épargne versée', color:'var(--s1)', values:six.vals.map(v => v.epargne)}], 'Épargne versée sur six mois')}
+    <p class="muted small">L'épargne n'est jamais traitée comme un budget de consommation.</p></section>`;
 }
 
 function persoPlus() {
-  const {reg, revenus} = S.data;
-  return `<section><h2>Réglages perso</h2>
-  <form id="regp" style="margin-top:14px">
-    <div class="two">${f('Enveloppe (€)', `<input name="env" type="number" step="0.01" min="0" value="${reg.enveloppe_montant}">`)}
-    ${f('Par', `<select name="per">${opts([['semaine', 'Semaine'], ['mois', 'Mois']], reg.enveloppe_periode)}</select>`)}</div>
-    <button class="btn" style="margin-top:18px">Enregistrer</button>
+  const m = persoMonth(S.monthOffset), cats = S.data.categories;
+  return `<section><h2>Budget vie</h2>
+  <p class="muted small" style="margin-top:6px">Chaque mois a son propre budget. Les montants des autres mois ne changent pas.</p>
+  ${monthNav()}
+  <form id="regb">
+    <div class="two">${f('Budget vie (€)', `<input name="budget" type="number" step="0.01" min="0" required inputmode="decimal" value="${m.bud ? m.bud.budget_vie : ''}">`)}
+    ${f('Réserve exceptionnelle (€)', `<input name="reserve" type="number" step="0.01" min="0" inputmode="decimal" value="${m.bud ? m.bud.reserve : 0}">`)}</div>
+    <button class="btn" style="margin-top:18px">Enregistrer pour ${monthName(m.r)}</button>
   </form></section>
   ${prelBlock('perso')}
-  <section><div class="sec-head"><h2>Chômage et autres revenus</h2><button class="btn sm" data-act="newChom">Ajouter</button></div>
-  ${revenus.length ? revenus.slice(0, 12).map(r => `<div class="item"><span class="i-main"><b>${esc(r.libelle)}</b><small>${dFR(r.date_revenu)}</small></span>
-    <span class="i-side num">${eur(r.montant)}</span><button class="x" data-act="delChom" data-id="${r.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Rien d\'enregistré.</p>'}</section>`;
+  <section><div class="sec-head"><h2>Catégories</h2><button class="btn sm" data-act="newCat">Ajouter</button></div>
+  ${cats.map(c => `<div class="item"><span class="i-main"><b>${esc(c.nom)}</b></span><button class="x" data-act="delCat" data-id="${c.id}" aria-label="Supprimer">×</button></div>`).join('') || '<p class="empty">Aucune catégorie.</p>'}</section>
+  <section><button class="btn ghost" data-act="exportCsv">Exporter mes données (CSV)</button></section>`;
 }
 
 /* ---------- Comptes (commun aux deux profils) ---------- */
 function comptes() {
   const {comptes, paiements, depenses, revenus} = S.data, mr = monthRange(0);
   const rows = comptes.map(c => ({c, all:soldeOf(c), mois:soldeOf(c, mr)}));
-  const total = sum(rows.map(r => ({v:r.all.solde})), 'v'), urs = eniMonth(0).urs;
-  const orphan = paiements.filter(x => !x.compte_id).length + depenses.filter(x => !x.compte_id).length + revenus.filter(x => !x.compte_id).length;
-  return `<section><div class="sec-head"><h2>Comptes</h2><button class="btn sm" data-act="newCompte">Ajouter</button></div>
+  const groups = [['Perso', rows.filter(x => x.c.type !== 'epargne' && x.c.univers === 'perso')], ['Pro', rows.filter(x => x.c.type !== 'epargne' && x.c.univers === 'pro')], ['Épargne', rows.filter(x => x.c.type === 'epargne')]];
+  const tot = rs => rs.reduce((t, x) => t + x.all.solde, 0), total = tot(rows), urs = proTreso().reserve;
+  const orphan = paiements.filter(x => !x.compte_id).length + depenses.filter(x => !x.compte_id && x.categorie !== 'perso' ? true : !x.compte_id).length + revenus.filter(x => !x.compte_id && x.statut === 'recu').length;
+  const line = ({c, all, mois}) => `<button class="item" data-act="editCompte" data-id="${c.id}"><span class="i-main"><b>${esc(c.nom)}</b>
+    <small>${COMPTE_TYPES[c.type]}, ce mois-ci +${eur(mois.inn)} −${eur(mois.out)}</small></span><span class="i-side num ${all.solde < 0 ? 'neg' : ''}">${eur(all.solde)}</span></button>`;
+  return `<section><div class="sec-head"><h2>Comptes</h2><div style="display:flex;gap:8px"><button class="btn ghost sm" data-act="newTransfert">Transfert</button><button class="btn sm" data-act="newCompte">Ajouter</button></div></div>
   <section class="hero" style="margin-top:12px"><p class="lead">Au total</p><p class="big num ${total < 0 ? 'neg' : ''}">${eur(total)}</p>
-    <p class="sub num">dont ${eur(urs)} à réserver pour l'URSSAF (encaissé ce mois-ci)</p></section>
-  <div style="margin-top:18px">${rows.length ? rows.map(({c, all, mois}) => `<button class="item" data-act="editCompte" data-id="${c.id}"><span class="i-main"><b>${esc(c.nom)}</b>
-    <small>${COMPTE_TYPES[c.type]}, ce mois-ci +${eur(mois.inn)} −${eur(mois.out)}</small></span><span class="i-side num ${all.solde < 0 ? 'neg' : ''}">${eur(all.solde)}</span></button>`).join('')
-    : '<p class="empty">Aucun compte. Ajoute Revolut, espèces, banque.</p>'}</div>
+    <p class="sub num">dont ${eur(urs)} à réserver pour l'URSSAF, argent pro qui n'est pas à toi</p></section>
+  ${groups.map(([t, rs]) => rs.length ? `<div class="sec-head" style="margin-top:22px"><h3>${t}</h3><span class="num muted">${eur(tot(rs))}</span></div>${rs.map(line).join('')}` : '').join('')}
+  ${!rows.length ? '<p class="empty">Aucun compte. Ajoute ton compte perso, ton compte pro, ton épargne.</p>' : ''}
   ${orphan ? `<p class="note" style="margin-top:18px">${orphan} mouvement${orphan > 1 ? 's' : ''} sans compte ne sont pas comptés dans ces soldes. Choisis un compte à la saisie pour qu'ils le soient.</p>` : ''}
-  <p class="muted small" style="margin-top:14px">Touche un compte pour corriger son solde réel, par exemple après un retrait ou un virement entre comptes.</p></section>`;
+  <p class="muted small" style="margin-top:14px">Les soldes de départ sont à 0 tant que tu ne les corriges pas : touche un compte et indique son solde réel.</p></section>`;
 }
 function clienteForm(c) {
   modal(c ? 'Modifier la cliente' : 'Nouvelle cliente', `
@@ -676,7 +825,7 @@ async function del(table, id, msg, after) {
 /* ---------- Rendu général ---------- */
 const VIEWS = {
   eniram:{accueil:eniHome, prestations, clientes, depenses, plus:eniPlus, comptes},
-  perso:{accueil:persoHome, mouvements, comptes, plus:persoPlus}
+  perso:{accueil:persoHome, mouvements, comptes, epargne, plus:persoPlus}
 };
 function render() {
   const P = PROFILES[S.profile], other = S.profile === 'eniram' ? 'perso' : 'eniram', O = PROFILES[other];
@@ -697,10 +846,9 @@ function setProfile(k) {
 function profileSheet() {
   modal('Profils', `<div class="prof">${Object.entries(PROFILES).map(([k, p]) => `<button type="button" class="item" data-act="switch" data-k="${k}">
       <span class="av" style="background:${p.bg};color:${p.fg}" aria-hidden="true">${p.mono}</span><span class="i-main"><b>${p.nom}</b><small>${p.sous}</small></span>${S.profile === k ? '<span class="ok" aria-label="Profil actuel">✓</span>' : ''}</button>`).join('')}</div>
-    <button type="button" class="item" data-act="goComptes"><span class="i-main"><b>Comptes</b><small>Revolut, espèces, banque</small></span></button>
+    <button type="button" class="item" data-act="goComptes"><span class="i-main"><b>Comptes</b><small>Perso, pro, épargne, espèces</small></span></button>
     <div style="margin:20px 0 14px"><button type="button" class="btn ghost" data-act="logout">Se déconnecter</button></div>`, null);
 }
-
 function loginView(msg) {
   document.body.dataset.p = 'eniram';
   app.innerHTML = `<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Eniram Beauty</h1><p class="muted">Connecte-toi pour ouvrir ta compta.</p>
@@ -765,56 +913,160 @@ function depForm(u) {
     <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
     ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
     ${perso
-      ? `${f('Catégorie', `<select name="sous">${opts(CATS_PERSO.map(c => [c, c]))}</select>`)}${compteField(defaultCompte('cb'))}`
+      ? `${f('Catégorie', `<select name="sous">${opts(persoCats().map(c => [c, c]))}</select>`)}${compteField(comptePerso())}
+         <label class="check"><input type="checkbox" name="exceptionnelle"> Dépense exceptionnelle (hors budget vie)</label>`
       : `<div class="two">${f('Catégorie', `<select name="categorie">${optsObj(CATS_PRO)}</select>`)}
-         ${f('Moyen', `<select name="moyen"><option value="">Non précisé</option>${optsObj(MOYENS)}</select>`)}</div>${compteField('')}`}
+         ${f('Moyen', `<select name="moyen"><option value="">Non précisé</option>${optsObj(MOYENS)}</select>`)}</div>${compteField(defaultCompte('cb'))}`}
   `, async fd => {
     const row = perso
-      ? {libelle:fd.libelle.trim(), montant:+fd.montant, date_depense:fd.date, categorie:'perso', sous_categorie:fd.sous, compte_id:nz(fd.compte_id)}
+      ? {libelle:fd.libelle.trim(), montant:+fd.montant, date_depense:fd.date, categorie:'perso', sous_categorie:fd.sous, compte_id:nz(fd.compte_id), exceptionnelle:!!fd.exceptionnelle}
       : {libelle:fd.libelle.trim(), montant:+fd.montant, date_depense:fd.date, categorie:fd.categorie, moyen:nz(fd.moyen), compte_id:nz(fd.compte_id)};
     const r = await sb.from('depenses').insert(row);
     if (r.error) throw r.error;
   });
 }
 
-function prelForm(u) {
-  modal('Nouveau prélèvement fixe', `
-    ${f('Libellé', '<input name="libelle" required>')}
-    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
-    ${f('Jour du mois', '<input name="jour" type="number" min="1" max="31" required inputmode="numeric">')}</div>
-    ${f('Catégorie (facultatif)', '<input name="categorie">')}
+function prelForm(u, p) {
+  modal(p ? 'Modifier la charge fixe' : 'Nouvelle charge fixe', `
+    ${f('Libellé', `<input name="libelle" required value="${esc(p?.libelle)}">`)}
+    <div class="two">${f('Montant (€)', `<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal" value="${p ? p.montant : ''}">`)}
+    ${f('Jour du mois (facultatif)', `<input name="jour" type="number" min="1" max="31" inputmode="numeric" value="${p?.jour_du_mois ?? ''}">`)}</div>
+    <div class="two">${f('Fréquence', `<select name="frequence">${opts([['mensuelle', 'Mensuelle'], ['annuelle', 'Annuelle']], p?.frequence || 'mensuelle')}</select>`)}
+    ${f('Mois (si annuelle)', `<select name="mois"><option value="">-</option>${opts(Array.from({length:12}, (_, i) => [i + 1, new Date(2000, i, 1).toLocaleDateString('fr-FR', {month:'long'})]), p?.mois_annuel)}</select>`)}</div>
   `, async fd => {
-    const r = await sb.from('prelevements_fixes').insert({libelle:fd.libelle.trim(), montant:+fd.montant, jour_du_mois:+fd.jour, categorie:nz(fd.categorie), univers:u});
+    if (fd.frequence === 'annuelle' && !fd.mois) throw new Error('Choisis le mois du prélèvement annuel.');
+    const row = {libelle:fd.libelle.trim(), montant:+fd.montant, jour_du_mois:fd.jour ? +fd.jour : null, frequence:fd.frequence, mois_annuel:fd.frequence === 'annuelle' ? +fd.mois : null};
+    const r = p ? await sb.from('prelevements_fixes').update(row).eq('id', p.id) : await sb.from('prelevements_fixes').insert({...row, univers:u, categorie:p?.categorie ?? 'Charges fixes'});
     if (r.error) throw r.error;
   });
 }
 
-function chomForm() {
+function revenuForm() {
   modal('Nouveau revenu', `
     ${f('Libellé', '<input name="libelle" required value="Chômage">')}
     <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
-    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
-    ${compteField(defaultCompte('cb'))}
+    ${f('Date (ou mois prévu)', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
+    <div class="two">${f('Source', `<select name="source">${optsObj(SOURCES)}</select>`)}
+    ${f('Statut', `<select name="statut">${opts([['recu', 'Reçu'], ['attendu', 'Attendu']])}</select>`)}</div>
+    ${compteField(comptePerso(), 'compte_id', 'Compte destinataire')}
   `, async fd => {
-    const r = await sb.from('revenus_perso').insert({libelle:fd.libelle.trim(), montant:+fd.montant, date_revenu:fd.date, compte_id:nz(fd.compte_id)});
+    const r = await sb.from('revenus_perso').insert({libelle:fd.libelle.trim(), montant:+fd.montant, date_revenu:fd.date, source:fd.source, statut:fd.statut, compte_id:nz(fd.compte_id)});
+    if (r.error) throw r.error;
+  });
+}
+function recevoirForm(x) {
+  modal('Revenu reçu', `<p class="muted">${esc(x.libelle)}, ${eur(x.montant)}</p>
+    ${f('Date de réception', `<input name="date" type="date" required value="${iso(new Date())}">`)}
+    ${compteField(x.compte_id || comptePerso(), 'compte_id', 'Compte destinataire')}
+  `, async fd => {
+    const r = await sb.from('revenus_perso').update({statut:'recu', date_revenu:fd.date, compte_id:nz(fd.compte_id)}).eq('id', x.id);
+    if (r.error) throw r.error;
+  }, 'Marquer comme reçu');
+}
+
+function compteForm(c, ep) {
+  const cur = c ? soldeOf(c) : null, isEp = ep || c?.type === 'epargne';
+  modal(c ? 'Modifier le compte' : 'Nouveau compte', `
+    ${f('Nom', `<input name="nom" required value="${esc(c?.nom)}">`)}
+    <div class="two">${f('Type', `<select name="type">${optsObj(COMPTE_TYPES, c?.type || (ep ? 'epargne' : 'banque'))}</select>`)}
+    ${f('Univers', `<select name="univers">${opts([['perso', 'Personnel'], ['pro', 'Professionnel']], c?.univers || 'perso')}</select>`)}</div>
+    ${c ? f('Solde réel actuel (€)', `<input name="actuel" type="number" step="0.01" inputmode="decimal" required value="${cur.solde.toFixed(2)}">`)
+        : f('Solde de départ (€)', '<input name="depart" type="number" step="0.01" inputmode="decimal" value="0">')}
+    <h3 style="margin-top:22px">Épargne (facultatif)</h3>
+    ${f('Type d\'épargne', `<select name="epargne_type"><option value="">Aucun</option>${optsObj(EPARGNE_TYPES, c?.epargne_type || (isEp ? 'generale' : ''))}</select>`)}
+    <div class="two">${f('Objectif (€)', `<input name="objectif" type="number" step="0.01" min="0" value="${c?.objectif ?? ''}">`)}
+    ${f('Versement mensuel (€)', `<input name="versement" type="number" step="0.01" min="0" value="${c?.versement_mensuel ?? ''}">`)}</div>
+    ${f('Versements à partir du', `<input name="reprise" type="date" value="${c?.reprise_le ?? ''}">`)}
+    ${c ? `<div style="margin-top:18px"><button type="button" class="btn danger sm" data-act="delCompte" data-id="${c.id}">Supprimer ce compte</button></div>` : ''}
+  `, async fd => {
+    const row = {nom:fd.nom.trim(), type:fd.type, univers:fd.univers, epargne_type:nz(fd.epargne_type), objectif:nz(fd.objectif) == null ? null : +fd.objectif,
+      versement_mensuel:nz(fd.versement) == null ? null : +fd.versement, reprise_le:nz(fd.reprise)};
+    if (c) row.solde_initial = r2(+fd.actuel - (cur.inn - cur.out)); else row.solde_initial = +fd.depart || 0;
+    const r = c ? await sb.from('comptes').update(row).eq('id', c.id) : await sb.from('comptes').insert(row);
     if (r.error) throw r.error;
   });
 }
 
-function compteForm(c) {
-  const cur = c ? soldeOf(c) : null;
-  modal(c ? 'Modifier le compte' : 'Nouveau compte', `
-    ${f('Nom', `<input name="nom" required value="${esc(c?.nom)}">`)}
-    ${f('Type', `<select name="type">${optsObj(COMPTE_TYPES, c?.type || 'banque')}</select>`)}
-    ${c ? f('Solde réel actuel (€)', `<input name="actuel" type="number" step="0.01" inputmode="decimal" required value="${cur.solde.toFixed(2)}">`)
-        : f('Solde de départ (€)', '<input name="depart" type="number" step="0.01" inputmode="decimal" value="0">')}
-    ${c ? `<div style="margin-top:18px"><button type="button" class="btn danger sm" data-act="delCompte" data-id="${c.id}">Supprimer ce compte</button></div>` : ''}
+function transfertForm(ep) {
+  const eps = S.data.comptes.find(c => c.type === 'epargne');
+  modal(ep ? 'Verser sur l\'épargne' : 'Transfert entre comptes', `
+    <p class="muted small">Un transfert déplace de l'argent d'un compte à l'autre. Ce n'est ni un revenu ni une dépense.</p>
+    <div class="two">${compteField(ep ? comptePerso() : defaultCompte('cb'), 'source', 'Depuis', 'Choisir')}${compteField(ep ? (eps || {}).id : comptePerso(), 'dest', 'Vers', 'Choisir')}</div>
+    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
+    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
+    ${f('Libellé (facultatif)', '<input name="libelle">')}
   `, async fd => {
-    const row = {nom:fd.nom.trim(), type:fd.type};
-    if (c) row.solde_initial = +(+fd.actuel - (cur.inn - cur.out)).toFixed(2); else row.solde_initial = +fd.depart || 0;
-    const r = c ? await sb.from('comptes').update(row).eq('id', c.id) : await sb.from('comptes').insert(row);
+    if (!fd.source || !fd.dest) throw new Error('Choisis les deux comptes.');
+    if (fd.source === fd.dest) throw new Error('Les deux comptes doivent être différents.');
+    const motif = isEpargne(fd.dest) && !isEpargne(fd.source) ? 'epargne' : 'autre';
+    const r = await sb.from('transferts').insert({date_transfert:fd.date, montant:+fd.montant, compte_source:fd.source, compte_dest:fd.dest, motif, libelle:nz(fd.libelle)});
+    if (r.error) throw r.error;
+  }, 'Confirmer le transfert');
+}
+
+function salaireForm() {
+  const m = eniMonth(S.monthOffset), r = m.r, tr = proTreso();
+  modal('Verser mon salaire', `
+    <p class="muted">${monthName(r)}</p>
+    <div class="row"><span>Reste après URSSAF</span><span class="num">${eur(m.restant)}</span></div>
+    <div class="row"><span>Salaire à ${m.part} %</span><span class="num">${eur(m.reco)}</span></div>
+    <div class="row"><span>Déjà versé ce mois-ci</span><span class="num">${eur(m.verse)}</span></div>
+    <div class="row"><span>Disponible sur le pro (après URSSAF et charges)</span><span class="num ${tr.dispo < 0 ? 'neg' : ''}">${eur(tr.dispo)}</span></div>
+    ${f('Montant à te verser (€)', `<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal" value="${Math.max(0, r2(m.sugg - m.verse)) || ''}">`)}
+    <div class="two">${compteField(defaultCompte('cb'), 'source', 'Depuis le compte pro', 'Choisir')}${compteField(comptePerso(), 'dest', 'Vers le compte perso', 'Choisir')}</div>
+    <p class="muted small" style="margin-top:12px">Rien ne part tant que tu ne confirmes pas. Cette appli enregistre le virement, elle ne touche pas à ta banque.</p>
+  `, async fd => {
+    if (!fd.source || !fd.dest) throw new Error('Choisis les deux comptes.');
+    if (fd.source === fd.dest) throw new Error('Les deux comptes doivent être différents.');
+    const x = await sb.from('transferts').insert({date_transfert:iso(new Date()), montant:+fd.montant, compte_source:fd.source, compte_dest:fd.dest, motif:'salaire', mois:r[0], libelle:'Salaire Eniram ' + monthName(r)});
+    if (x.error) throw x.error;
+  }, 'Confirmer le versement');
+}
+
+function urssafForm() {
+  const tr = proTreso();
+  modal('URSSAF payée', `
+    <p class="muted small">À réserver pour le moment : ${eur(tr.reserve)}.</p>
+    <div class="two">${f('Montant (€)', `<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal" value="${tr.reserve > 0 ? r2(tr.reserve) : ''}">`)}
+    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
+    ${f('Période (facultatif)', '<input name="periode" placeholder="ex. 3e trimestre 2026">')}
+    ${compteField(defaultCompte('cb'), 'compte_id', 'Payé depuis')}
+  `, async fd => {
+    const r = await sb.from('urssaf_paiements').insert({montant:+fd.montant, date_paiement:fd.date, periode:nz(fd.periode), compte_id:nz(fd.compte_id)});
     if (r.error) throw r.error;
   });
+}
+
+async function saveBudget(budget, reserve) {
+  const r = monthRange(S.monthOffset), ex = budgetOf(r);
+  const {error} = await sb.from('budgets_mensuels').upsert({mois:r[0], budget_vie:+budget, reserve:+reserve || 0, reserve_debloquee:ex ? ex.reserve_debloquee : false}, {onConflict:'mois'});
+  if (error) throw error;
+}
+function budgetForm() {
+  const m = persoMonth(S.monthOffset);
+  modal('Budget vie de ' + monthName(m.r), `
+    <div class="two">${f('Budget vie (€)', `<input name="budget" type="number" step="0.01" min="0" required inputmode="decimal" value="${m.bud ? m.bud.budget_vie : ''}">`)}
+    ${f('Réserve exceptionnelle (€)', `<input name="reserve" type="number" step="0.01" min="0" inputmode="decimal" value="${m.bud ? m.bud.reserve : 0}">`)}</div>
+    <p class="muted small" style="margin-top:12px">La réserve n'est comptée dans le budget que si tu la débloques.</p>
+  `, async fd => { await saveBudget(fd.budget, fd.reserve); });
+}
+function catForm() {
+  modal('Nouvelle catégorie', f('Nom', '<input name="nom" required>'), async fd => {
+    const ordre = Math.max(0, ...S.data.categories.map(c => c.ordre || 0)) + 1;
+    const r = await sb.from('categories_perso').insert({nom:fd.nom.trim(), ordre});
+    if (r.error) throw r.error;
+  });
+}
+
+function exportCsv() {
+  const d = S.data, rows = [['type', 'date', 'libelle', 'montant', 'categorie', 'compte', 'statut']];
+  d.depenses.forEach(x => rows.push(['depense', x.date_depense, x.libelle, x.montant, x.sous_categorie || x.categorie, cname(x.compte_id), x.exceptionnelle ? 'exceptionnelle' : '']));
+  d.revenus.forEach(x => rows.push(['revenu', x.date_revenu, x.libelle, x.montant, x.source, cname(x.compte_id), x.statut]));
+  d.paiements.forEach(x => rows.push(['paiement', x.date_paiement, (S.cmap[(d.prestas.find(p => p.id === x.prestation_id) || {}).cliente_id] || {}).nom || '', x.montant, x.moyen, cname(x.compte_id), 'urssaf ' + x.urssaf_montant]));
+  d.transferts.forEach(x => rows.push(['transfert', x.date_transfert, x.libelle || '', x.montant, x.motif, cname(x.compte_source) + ' > ' + cname(x.compte_dest), '']));
+  d.urssafPay.forEach(x => rows.push(['urssaf payee', x.date_paiement, x.periode || '', x.montant, '', cname(x.compte_id), '']));
+  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv'})); a.download = 'eniram-export.csv'; a.click();
 }
 
 /* ---------- Actions ---------- */
@@ -834,17 +1086,19 @@ const ACTS = {
   newCliente() { clienteForm(); },
   editCliente(d) { clienteForm(S.cmap[d.id]); },
   openCliente(d) { clienteDetail(d.id); },
-  newDep(d) { depForm(d.u || 'eniram'); },
+  newDep(d) { depForm(d.u || (S.profile === 'perso' ? 'perso' : 'eniram')); },
   delDep(d) { del('depenses', d.id, 'Supprimer cette dépense ?'); },
   newPrel(d) { prelForm(d.u || 'perso'); },
+  editPrel(d) { const p = S.data.prelevements.find(x => x.id === d.id); prelForm(p.univers, p); },
   async togglePrel(d) {
     const p = S.data.prelevements.find(x => x.id === d.id);
     const {error} = await sb.from('prelevements_fixes').update({actif:!p.actif}).eq('id', d.id);
     if (error) return toast(error.message, true);
-    await refresh(); toast(p.actif ? 'Prélèvement suspendu' : 'Prélèvement réactivé');
+    await refresh(); toast(p.actif ? 'Charge suspendue' : 'Charge réactivée');
   },
-  delPrel(d) { del('prelevements_fixes', d.id, 'Supprimer ce prélèvement ?'); },
-  newChom() { chomForm(); },
+  delPrel(d) { del('prelevements_fixes', d.id, 'Supprimer cette charge fixe ?'); },
+  newChom() { revenuForm(); },
+  recevoir(d) { recevoirForm(S.data.revenus.find(x => x.id === d.id)); },
   delChom(d) { del('revenus_perso', d.id, 'Supprimer ce revenu ?'); },
   newProd() { prodForm(); },
   async finiProd(d) {
@@ -855,9 +1109,23 @@ const ACTS = {
   delProd(d) { del('produits', d.id, 'Supprimer ce produit ?'); },
   newPub() { pubForm(); },
   delPub(d) { del('campagnes_pub', d.id, 'Supprimer cette campagne ?'); },
-  newCompte() { compteForm(); },
+  newCompte(d) { compteForm(null, !!d.ep); },
   editCompte(d) { compteForm(S.data.comptes.find(c => c.id === d.id)); },
-  delCompte(d) { del('comptes', d.id, 'Supprimer ce compte ? Les mouvements restent, mais ne sont plus rattachés à un compte.', () => $('#dlg').close()); }
+  delCompte(d) { del('comptes', d.id, 'Supprimer ce compte ? Les mouvements restent, mais ne sont plus rattachés à un compte.', () => $('#dlg').close()); },
+  newTransfert(d) { transfertForm(!!d.epargne); },
+  delTransfert(d) { del('transferts', d.id, 'Supprimer ce transfert ?'); },
+  newSalaire() { salaireForm(); },
+  newUrssaf() { urssafForm(); },
+  delUrssaf(d) { del('urssaf_paiements', d.id, 'Supprimer ce paiement URSSAF ?'); },
+  budgetForm() { budgetForm(); },
+  async reserve(d) {
+    const {error} = await sb.from('budgets_mensuels').update({reserve_debloquee:true}).eq('mois', d.m);
+    if (error) return toast(error.message, true);
+    await refresh(); toast('Réserve débloquée');
+  },
+  newCat() { catForm(); },
+  delCat(d) { del('categories_perso', d.id, 'Supprimer cette catégorie ? Les dépenses déjà notées la gardent.'); },
+  exportCsv() { exportCsv(); }
 };
 
 document.addEventListener('click', e => {
@@ -879,15 +1147,18 @@ document.addEventListener('submit', async e => {
     if (error) return loginView('Email ou mot de passe incorrect.');
     return refresh();
   }
-  if (e.target.id === 'regf' || e.target.id === 'regp') {
+  if (e.target.id === 'regf') {
     e.preventDefault();
     const fd = Object.fromEntries(new FormData(e.target));
-    const row = e.target.id === 'regf'
-      ? {taux_urssaf:+fd.taux, plafond_ca:nz(fd.plafond) == null ? null : +fd.plafond}
-      : {enveloppe_montant:+fd.env || 0, enveloppe_periode:fd.per};
-    const {error} = await sb.from('reglages').update({...row, updated_at:new Date().toISOString()}).eq('id', 1);
+    const {error} = await sb.from('reglages').update({taux_urssaf:+fd.taux, part_salaire:+fd.part, arrondi_salaire:+fd.arrondi || 0,
+      plafond_ca:nz(fd.plafond) == null ? null : +fd.plafond, updated_at:new Date().toISOString()}).eq('id', 1);
     if (error) return toast(error.message, true);
     await refresh(); toast('Réglages enregistrés');
+  }
+  if (e.target.id === 'regb') {
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target));
+    try { await saveBudget(fd.budget, fd.reserve); await refresh(); toast('Budget enregistré'); } catch (err) { toast(err.message, true); }
   }
 });
 
