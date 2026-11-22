@@ -217,7 +217,6 @@ function toast(msg, bad) {
   clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3200);
 }
 
-
 /* ---------- Constantes ---------- */
 const CATS_PRO = {fournitures:'Fournitures', investissement:'Investissement', pub:'Pub', charge_variable:'Charge variable', autre:'Autre'};
 const CATS_PERSO_DEFAUT = ['Essence et transport', 'Shopping', 'Beauté et soins', 'Restaurants et sorties', 'Cadeaux', 'Loisirs', 'Abonnements', 'Formation', 'Dépenses diverses', 'Vacances'];
@@ -265,7 +264,7 @@ async function load() {
   S.first = (dates.length ? dates.reduce((a, b) => a < b ? a : b) : iso(new Date())).slice(0, 7) + '-01';
 }
 async function refresh() {
-  try { await load(); render(); }
+  try { await load(); render(); loadAgenda(); }
   catch (e) {
     const m = e.message || '';
     if (/transferts|urssaf_paiements|budgets_mensuels|categories_perso|statut|part_salaire|frequence|univers|exceptionnelle|compte_id|comptes/.test(m)) {
@@ -416,6 +415,19 @@ function chartBars(labels, series, title) {
 const sixMonths = fn => { const offs = [-5, -4, -3, -2, -1, 0].map(k => S.monthOffset + k); return {labels:offs.map(o => monthShort(monthRange(o))), vals:offs.map(fn)}; };
 const monthNav = () => `<div class="mn"><div class="monthnav"><button data-act="month" data-d="-1" aria-label="Mois précédent">‹</button><span>${monthName(monthRange(S.monthOffset))}</span><button data-act="month" data-d="1" aria-label="Mois suivant">›</button></div></div>`;
 const partialNote = () => S.monthOffset === 0 ? `<p class="muted small">Le mois est en cours (jour ${new Date().getDate()}) : les montants du mois ne sont pas encore complets.</p>` : '';
+
+async function loadAgenda() {
+  try {
+    const {data} = await sb.auth.getSession(); const tok = data && data.session && data.session.access_token;
+    if (!tok || !S.data.reg.agenda_ical) { S.agenda = S.data.reg.agenda_ical ? null : {configured:false, events:[]}; }
+    else {
+      const r = await fetch('/api/agenda', {headers:{Authorization:'Bearer ' + tok}});
+      const j = await r.json().catch(() => ({}));
+      S.agenda = r.ok ? j : {error:j.error || 'Agenda indisponible'};
+    }
+  } catch (e) { S.agenda = {error:'Agenda indisponible'}; }
+  if (S.profile === 'eniram' && S.tab === 'accueil') render();
+}
 /* ---------- Fenêtre de saisie ---------- */
 function modal(title, body, onSubmit, label = 'Enregistrer') {
   const dlg = $('#dlg');
@@ -434,7 +446,6 @@ function modal(title, body, onSubmit, label = 'Enregistrer') {
 const f = (label, inner) => `<label>${label}${inner}</label>`;
 const opts = (pairs, sel) => pairs.map(([v, l]) => `<option value="${esc(v)}" ${String(v) === String(sel) ? 'selected' : ''}>${esc(l)}</option>`).join('');
 const optsObj = (o, sel) => opts(Object.entries(o), sel);
-
 function prestations() {
   const {prestas} = S.data;
   return `<section><div class="sec-head"><h2>Prestations</h2><button class="btn sm" data-act="newPresta">Nouvelle prestation</button></div>
@@ -464,7 +475,7 @@ function eniHome() {
   const {reg, prestas, paiements} = S.data, y = new Date().getFullYear();
   const m = eniMonth(S.monthOffset), pv = eniMonth(S.monthOffset - 1), tr = proTreso();
   const six = sixMonths(o => eniMonth(o));
-  const sold = prestas.filter(p => +p.montant_total - paid(p) > 0.009).slice(0, 5);
+  const sold = prestas.filter(p => new Date(p.date_prestation) <= new Date() && +p.montant_total - paid(p) > 0.009).slice(0, 5);
   const types = {}; m.ps.forEach(p => { const t = types[p.type_prestation] ??= {n:0, ca:0}; t.n++; t.ca += +p.montant_total; });
   const topTypes = Object.entries(types).sort((a, b) => b[1].n - a[1].n || b[1].ca - a[1].ca).slice(0, 5).map(([k, v]) => [k, v.n, eur(v.ca)]);
   const ids = [...new Set(m.ps.map(p => p.cliente_id))];
@@ -479,7 +490,7 @@ function eniHome() {
   const avg3 = moy(o => eniMonth(o).enc, 3);
   const vs = m.verse > 0 ? 'versé' : 'proposé';
 
-  return `${monthNav()}${alertsHtml(alerts('eniram'))}
+  return `${monthNav()}${alertsHtml(alerts('eniram'))}${agendaBlock()}
   <section class="hero"><p class="lead">Encaissé en ${monthName(m.r)}</p><p class="big num">${eur(m.enc)}</p>${delta(m.enc, pv.enc)}
     <p class="sub num">dont ${eur(m.urs)} à mettre de côté pour l'URSSAF</p>${partialNote()}</section>
   <section><div class="sec-head"><h2>Répartition du mois</h2></div>
@@ -569,6 +580,8 @@ function eniPlus() {
     ${f('Part salaire perso (%)', `<input name="part" type="number" step="0.01" min="0" max="100" required value="${reg.part_salaire}">`)}</div>
     <div class="two">${f('Arrondi du salaire (€)', `<input name="arrondi" type="number" step="1" min="0" value="${reg.arrondi_salaire}">`)}
     ${f('Plafond annuel de CA (€)', `<input name="plafond" type="number" step="0.01" min="0" value="${reg.plafond_ca ?? ''}">`)}</div>
+    ${f('Lien privé Google Agenda (lecture seule)', `<input name="agenda" type="url" autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" value="${esc(reg.agenda_ical)}">`)}
+    <p class="muted small">Google Agenda, Paramètres de l'agenda, « Adresse secrète au format iCal ». Ne le partage à personne.</p>
     <button class="btn" style="margin-top:18px">Enregistrer</button>
   </form></section>
   <section><div class="sec-head"><h2>URSSAF payée</h2><button class="btn sm" data-act="newUrssaf">Ajouter</button></div>
@@ -725,6 +738,45 @@ function comptes() {
   ${orphan ? `<p class="note" style="margin-top:18px">${orphan} mouvement${orphan > 1 ? 's' : ''} sans compte ne sont pas comptés dans ces soldes. Choisis un compte à la saisie pour qu'ils le soient.</p>` : ''}
   <p class="muted small" style="margin-top:14px">Les soldes de départ sont à 0 tant que tu ne les corriges pas : touche un compte et indique son solde réel.</p></section>`;
 }
+
+/* ---------- Agenda ---------- */
+const hFR = d => d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}).replace(':', 'h');
+const jFR = d => d.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+function matchCliente(title) {
+  const t = (title || '').toLowerCase(), cl = S.data.clientes;
+  let m = cl.find(c => t.includes(c.nom.trim().toLowerCase()));
+  if (m) return m;
+  const prem = cl.filter(c => { const p = c.nom.trim().toLowerCase().split(/\s+/)[0]; return p.length >= 3 && new RegExp('(^|[^a-zà-ÿ])' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-zà-ÿ]|$)').test(t); });
+  return prem.length === 1 ? prem[0] : null;
+}
+function rdvInfo(ev) {
+  const d = new Date(ev.start), c = matchCliente(ev.title);
+  const pr = c ? S.data.prestas.find(p => p.cliente_id === c.id && iso(new Date(p.date_prestation)) === iso(d)) : null;
+  const pays = pr ? (S.pay[pr.id] || []) : [];
+  return {d, c, pr, acompte:sum(pays.filter(x => x.type === 'acompte'), 'montant'), paye:sum(pays, 'montant')};
+}
+function agendaBlock() {
+  const A = S.agenda;
+  if (!A) return '';
+  if (A.error) return `<section><div class="sec-head"><h2>Prochaine cliente</h2></div><p class="empty">${esc(A.error)}</p></section>`;
+  if (!A.configured) return `<section><div class="sec-head"><h2>Prochaine cliente</h2></div><p class="empty">Agenda non connecté. Colle le lien privé Google Agenda dans Réglages.</p></section>`;
+  const now = Date.now(), evs = A.events.filter(e => !e.allDay && new Date(e.end).getTime() >= now);
+  if (!evs.length) return `<section><div class="sec-head"><h2>Prochaine cliente</h2></div><p class="empty">Aucun rendez-vous dans les 45 prochains jours.</p></section>`;
+  const n = rdvInfo(evs[0]), e = evs[0];
+  const total = n.pr ? +n.pr.montant_total : 0, reste = Math.max(0, total - n.paye);
+  const detail = n.pr
+    ? `<div class="row"><span>Prestation</span><span>${esc(n.pr.type_prestation)}</span></div>
+       <div class="row"><span>Prix</span><span class="num">${eur(total)}</span></div>
+       <div class="row"><span>Acompte versé</span><span class="num">${eur(n.acompte)}</span></div>
+       <div class="row"><span>Déjà payé</span><span class="num">${eur(n.paye)}</span></div>
+       <div class="row"><b>Reste à payer</b><b class="num">${eur(reste)}</b></div>`
+    : `<p class="muted small" style="margin:8px 0">Pas de prestation enregistrée ce jour-là${n.c ? '' : ' (cliente non reconnue dans le titre)'}. Crée-la pour suivre l'acompte.</p>
+       <button class="btn sm" data-act="newPresta" data-nom="${esc(n.c ? n.c.nom : '')}" data-date="${iso(n.d)}T${z2(n.d.getHours())}:${z2(n.d.getMinutes())}">Créer la prestation</button>`;
+  const suite = evs.slice(1, 5).map(x => { const i = rdvInfo(x); return `<div class="item"><span class="i-main"><b>${esc(x.title)}</b><small>${jFR(i.d)}, ${hFR(i.d)}${i.pr ? ', acompte ' + eur(i.acompte) + ', reste ' + eur(Math.max(0, +i.pr.montant_total - i.paye)) : ''}</small></span></div>`; }).join('');
+  return `<section><div class="sec-head"><h2>Prochaine cliente</h2></div>
+    <p><b>${esc(n.c ? n.c.nom : e.title)}</b></p><p class="muted small">${jFR(n.d)}, ${hFR(n.d)}${n.c && e.title ? ', ' + esc(e.title) : ''}${e.loc ? ', ' + esc(e.loc) : ''}</p>
+    ${detail}${suite ? `<h3 style="margin-top:18px">Ensuite</h3>${suite}` : ''}</section>`;
+}
 function clienteForm(c) {
   modal(c ? 'Modifier la cliente' : 'Nouvelle cliente', `
     ${f('Nom', `<input name="nom" required value="${esc(c?.nom)}">`)}
@@ -858,15 +910,15 @@ function loginView(msg) {
 }
 
 /* ---------- Formulaires ---------- */
-function prestaForm(nom = '') {
+function prestaForm(nom = '', date = '', type = '') {
   const {clientes, produits} = S.data;
   const pads = produits.filter(p => p.categorie === 'pad' && !p.date_fin).map(p => [p.id, p.nom]);
   const tints = produits.filter(p => p.categorie === 'teinture' && !p.date_fin).map(p => [p.id, p.nom]);
   modal('Nouvelle prestation', `
     ${f('Cliente', `<input name="cliente" list="dl-cl" required autocomplete="off" value="${esc(nom)}" placeholder="Choisis ou écris un nouveau nom"><datalist id="dl-cl">${clientes.map(c => `<option value="${esc(c.nom)}">`).join('')}</datalist>`)}
-    <div class="two">${f('Date et heure', `<input name="date_prestation" type="datetime-local" required value="${nowLocal()}">`)}
+    <div class="two">${f('Date et heure', `<input name="date_prestation" type="datetime-local" required value="${date || nowLocal()}">`)}
     ${f('Montant total (€)', '<input name="montant_total" type="number" step="0.01" min="0" required inputmode="decimal">')}</div>
-    ${f('Prestation', `<input name="type_prestation" list="dl-ty" required><datalist id="dl-ty">${TYPES.map(t => `<option value="${t}">`).join('')}</datalist>`)}
+    ${f('Prestation', `<input name="type_prestation" list="dl-ty" required value="${esc(type)}"><datalist id="dl-ty">${TYPES.map(t => `<option value="${t}">`).join('')}</datalist>`)}
     <h3 style="margin-top:22px">Encaissement</h3>
     <div class="two">${f('Montant encaissé (€)', '<input name="encaisse" type="number" step="0.01" min="0" inputmode="decimal">')}
     ${f('Type', `<select name="ptype">${opts([['solde', 'Solde'], ['acompte', 'Acompte']])}</select>`)}</div>
@@ -1078,7 +1130,7 @@ const ACTS = {
   switch(d) { setProfile(d.k); },
   goComptes() { if ($('#dlg').open) $('#dlg').close(); S.tab = 'comptes'; render(); scrollTo(0, 0); },
   async logout() { if ($('#dlg').open) $('#dlg').close(); await sb.auth.signOut(); },
-  newPresta(d) { prestaForm(d.nom || ''); },
+  newPresta(d) { prestaForm(d.nom || '', d.date || '', d.type || ''); },
   openPresta(d) { prestaDetail(d.id); },
   payAdd(d) { payForm(S.data.prestas.find(p => p.id === d.id)); },
   delPresta(d) { del('prestations', d.id, 'Supprimer cette prestation et ses paiements ?', () => $('#dlg').close()); },
@@ -1151,7 +1203,7 @@ document.addEventListener('submit', async e => {
     e.preventDefault();
     const fd = Object.fromEntries(new FormData(e.target));
     const {error} = await sb.from('reglages').update({taux_urssaf:+fd.taux, part_salaire:+fd.part, arrondi_salaire:+fd.arrondi || 0,
-      plafond_ca:nz(fd.plafond) == null ? null : +fd.plafond, updated_at:new Date().toISOString()}).eq('id', 1);
+      plafond_ca:nz(fd.plafond) == null ? null : +fd.plafond, agenda_ical:nz(fd.agenda), updated_at:new Date().toISOString()}).eq('id', 1);
     if (error) return toast(error.message, true);
     await refresh(); toast('Réglages enregistrés');
   }
