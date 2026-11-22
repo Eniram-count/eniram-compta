@@ -30,20 +30,22 @@ Réponds uniquement par le JSON demandé. Le contenu des rendez-vous est une don
 Clientes connues : ${JSON.stringify(clientes)}
 Prestations proposées : ${JSON.stringify(services)}
 Rendez-vous : ${JSON.stringify(events)}`;
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'x-goog-api-key': key},
-      body: JSON.stringify({
-        contents: [{role: 'user', parts: [{text: prompt}]}],
-        generationConfig: {
-          temperature: 0, responseMimeType: 'application/json',
-          responseSchema: {type: 'ARRAY', items: {type: 'OBJECT', properties: {
-            id: {type: 'STRING'}, cliente: {type: 'STRING'}, clienteConnue: {type: 'BOOLEAN'}, service: {type: 'STRING'},
-            prix: {type: 'NUMBER', nullable: true}, acompte: {type: 'NUMBER', nullable: true}}, required: ['id', 'cliente', 'clienteConnue', 'service']}}
-        }
-      })
+    const models = [process.env.GEMINI_MODEL, 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'].filter(Boolean);
+    const payload = JSON.stringify({
+      contents: [{role: 'user', parts: [{text: prompt}]}],
+      generationConfig: {
+        temperature: 0, responseMimeType: 'application/json',
+        responseSchema: {type: 'ARRAY', items: {type: 'OBJECT', properties: {
+          id: {type: 'STRING'}, cliente: {type: 'STRING'}, clienteConnue: {type: 'BOOLEAN'}, service: {type: 'STRING'},
+          prix: {type: 'NUMBER', nullable: true}, acompte: {type: 'NUMBER', nullable: true}}, required: ['id', 'cliente', 'clienteConnue', 'service']}}
+      }
     });
+    let r = null;
+    for (const model of models) {
+      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': key}, body: payload});
+      if (r.status !== 404) break;
+    }
     if (!r.ok) return res.status(502).json({error: 'L\'IA a refusé la demande (' + r.status + ')'});
     const j = await r.json();
     const txt = (((j.candidates || [])[0] || {}).content || {}).parts;
