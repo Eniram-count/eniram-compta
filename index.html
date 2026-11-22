@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF1EE">
+<title>Eniram Beauty, compta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..800;1,6..96,400..800&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --creme:#FAF1EE; --creme2:#F1E1DE; --rose:#E9A8BB; --rose-doux:#F6DDE3; --rose-fonce:#A04A65;
+  --brun:#5B3A3F; --brun-doux:#775A5E; --ligne:#E8D6D4; --champ:#FFFBFA; --ok:#4E7F5E; --alerte:#B0413A;
+  --serif:'Bodoni Moda','Didot','Bodoni 72',Georgia,serif;
+  --sans:'Jost','Helvetica Neue',Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--creme);color:var(--brun);font-family:var(--sans);font-size:16px;line-height:1.5;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--serif);font-weight:500;margin:0;line-height:1.15}
+h2{font-style:italic;font-size:1.6rem}
+h3{font-size:1.15rem;font-weight:600}
+p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+
+/* En-tête et navigation */
+.top{position:sticky;top:0;z-index:20;background:var(--creme);border-bottom:1px solid var(--ligne);
+  padding:calc(10px + env(safe-area-inset-top,0px)) 18px 10px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.mono{width:44px;height:44px;border-radius:50%;background:var(--rose);display:grid;place-items:center;
+  font-family:var(--serif);font-size:1.35rem;letter-spacing:-.09em;color:var(--brun);padding-right:3px}
+.mono.big{width:92px;height:92px;font-size:2.7rem;margin:0 auto 18px}
+.word{display:flex;flex-direction:column;line-height:1}
+.word span{font-family:var(--serif);font-size:1.25rem;letter-spacing:.32em;font-weight:500}
+.word small{font-size:.62rem;letter-spacing:.5em;margin-top:5px;color:var(--brun-doux)}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--creme);border-top:1px solid var(--ligne);
+  padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:30}
+nav button{flex:1;background:none;border:0;padding:12px 2px;font-size:.84rem;color:var(--brun-doux);cursor:pointer;border-radius:12px}
+nav button.on{color:var(--brun);font-family:var(--serif);font-style:italic;font-size:1rem;font-weight:600;background:var(--rose-doux)}
+@media(min-width:720px){
+  body{padding-bottom:40px}
+  nav{position:static;border:0;padding:0;background:none;gap:4px}
+  nav button{flex:none;padding:8px 16px;font-size:.95rem}
+}
+main{max-width:720px;margin:0 auto;padding:22px 18px 8px}
+main>section{margin-top:34px}
+main>section:first-child{margin-top:0}
+
+/* Mise en page commune */
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:12px 0;border-bottom:1px solid var(--ligne)}
+.row.total{border-bottom:0;border-top:2px solid var(--brun);margin-top:4px;padding-top:14px;font-weight:600}
+.row.total .num{font-family:var(--serif);font-size:1.5rem}
+.muted{color:var(--brun-doux)}
+.small{font-size:.88rem}
+.ok{color:var(--ok)} .warn{color:var(--rose-fonce)} .neg{color:var(--alerte)}
+.empty{padding:22px 0;color:var(--brun-doux)}
+.item{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--ligne);padding:13px 0;cursor:pointer}
+div.item{cursor:default}
+.item:hover{background:rgba(246,221,227,.45)}
+div.item:hover{background:none}
+.i-main{display:flex;flex-direction:column;min-width:0}
+.i-main b{font-weight:500;font-size:1.02rem}
+.i-main small,.i-side small{color:var(--brun-doux);font-size:.84rem}
+.i-side{display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap}
+.i-side small.warn{color:var(--rose-fonce)} .i-side small.ok{color:var(--ok)}
+.x{background:none;border:0;font-size:1.5rem;line-height:1;color:var(--brun-doux);cursor:pointer;padding:4px 8px;border-radius:10px}
+.x:hover{background:var(--rose-doux)}
+.monthnav{display:flex;align-items:center;gap:6px}
+.monthnav span{font-family:var(--serif);font-style:italic;font-size:1.15rem;min-width:9.5em;text-align:center;text-transform:capitalize}
+.monthnav button{background:var(--rose-doux);border:0;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.1rem}
+
+/* Boutons et champs */
+.btn{background:var(--rose);border:0;color:var(--brun);font-weight:600;padding:12px 22px;border-radius:999px;cursor:pointer}
+.btn:hover{background:#E193AA}
+.btn.ghost{background:none;border:1.5px solid var(--brun);padding:10px 20px}
+.btn.ghost:hover{background:var(--rose-doux)}
+.btn.sm{padding:8px 16px;font-size:.9rem}
+.btn.danger{background:none;color:var(--alerte);border:1.5px solid var(--alerte)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--rose-fonce);outline-offset:2px}
+label{display:block;font-size:.92rem;color:var(--brun-doux);margin-top:14px}
+label:first-child{margin-top:0}
+input,select,textarea{display:block;width:100%;margin-top:5px;background:var(--champ);border:1.5px solid var(--ligne);border-radius:12px;padding:11px 13px;color:var(--brun)}
+textarea{min-height:80px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.check{display:flex;gap:10px;align-items:center;margin-top:16px;color:var(--brun)}
+.check input{width:auto;margin:0}
+.err{color:var(--alerte);margin-top:10px}
+
+/* Carte principale : l'enveloppe */
+.hero{background:var(--rose-doux);border-radius:30px;padding:28px 24px 26px}
+.hero .lead{font-family:var(--serif);font-style:italic;font-size:1.25rem}
+.hero .big{font-family:var(--serif);font-weight:500;font-size:clamp(3.6rem,17vw,6.2rem);line-height:1;letter-spacing:-.02em;margin:8px 0 18px}
+.bar{height:10px;border-radius:999px;background:rgba(255,255,255,.75);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--rose-fonce);border-radius:999px}
+.hero .sub{margin-top:12px;color:var(--brun-doux)}
+.hero .btn{margin-top:16px}
+.bar.slim{height:8px;background:var(--creme2);margin:10px 0 6px}
+
+/* Fenêtre de saisie */
+dialog{width:min(560px,calc(100% - 20px));max-height:92vh;border:0;border-radius:26px;background:var(--creme);color:var(--brun);padding:0;overflow:auto;box-shadow:0 24px 60px rgba(91,58,63,.3)}
+dialog::backdrop{background:rgba(91,58,63,.4)}
+dialog header{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 6px;position:sticky;top:0;background:var(--creme);z-index:1}
+dialog header h2{font-size:1.5rem}
+.mbody{padding:10px 22px 6px}
+dialog footer{padding:14px 22px 22px;display:flex;gap:10px;flex-wrap:wrap}
+.login{max-width:380px;margin:0 auto;padding:max(12vh,40px) 22px;text-align:center}
+.login h1{font-style:italic;font-size:2rem;margin-bottom:6px}
+.login form{text-align:left;margin-top:26px}
+.login .btn{width:100%;margin-top:20px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));background:var(--brun);color:var(--creme);
+  padding:11px 20px;border-radius:999px;z-index:60;font-size:.95rem;max-width:90vw}
+.toast.bad{background:var(--alerte)}
+@media(min-width:720px){.toast{bottom:30px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<dialog id="dlg"></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* ============ CONFIGURATION : à remplir une seule fois ============ */
+const SUPABASE_URL = 'https://fiotoievhffjfsivgbud.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_MM1zoFnf-xTHPUkVzOCiFQ_D3H0lpAH';
+/* ================================================================== */
+
+const CONFIGURED = !/COLLE_ICI/.test(SUPABASE_URL + SUPABASE_KEY);
+const sb = CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR'});
+const eur = n => fmt.format(+n || 0);
+const sum = (a, k) => a.reduce((t, x) => t + (+x[k] || 0), 0);
+const nz = v => (v === '' || v == null) ? null : v;
+const z2 = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${z2(d.getMonth()+1)}-${z2(d.getDate())}`;
+const dFR = s => new Date(s.length <= 10 ? s + 'T12:00:00' : s).toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
+const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
+const inR = (d, [a, b]) => d >= a && d <= b;
+
+const MOYENS = {especes:'Espèces', cb:'Carte', revolut:'Revolut', virement:'Virement', autre:'Autre'};
+const CATS = {fournitures:'Fournitures', investissement:'Investissement', pub:'Pub', charge_variable:'Charge variable', perso:'Perso', autre:'Autre'};
+const PRODS = {pad:'Pad', teinture:'Teinture', fourniture:'Fourniture'};
+const TYPES = ['Rehaussement de cils', 'Korean lashlift', 'Browlift', 'Restructuration sourcils', 'Teinture sourcils', 'Autre'];
+
+function monthRange(off = 0) {
+  const n = new Date(), s = new Date(n.getFullYear(), n.getMonth() + off, 1), e = new Date(s.getFullYear(), s.getMonth() + 1, 0);
+  return [iso(s), iso(e), s];
+}
+function weekRange() {
+  const n = new Date(), d = (n.getDay() + 6) % 7, s = new Date(n.getFullYear(), n.getMonth(), n.getDate() - d);
+  return [iso(s), addDays(iso(s), 6)];
+}
+
+const S = {tab:'accueil', monthOffset:0, search:'', data:null, pay:{}, cmap:{}, pmap:{}};
+const app = $('#app');
+
+function toast(msg, bad) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : ''); t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3200);
+}
+
+/* ---------- Données ---------- */
+async function load() {
+  const t = (n, o) => { let q = sb.from(n).select('*'); if (o) q = q.order(o[0], {ascending:o[1]}); return q; };
+  const res = await Promise.all([
+    sb.from('reglages').select('*').eq('id', 1).single(),
+    t('clientes', ['nom', true]), t('produits', ['created_at', false]), t('prestations', ['date_prestation', false]),
+    t('paiements', ['date_paiement', false]), t('depenses', ['date_depense', false]), t('prelevements_fixes', ['jour_du_mois', true]),
+    t('revenus_perso', ['date_revenu', false]), t('campagnes_pub', ['date_debut', false])
+  ]);
+  const bad = res.find(r => r.error); if (bad) throw bad.error;
+  const [reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes] = res.map(r => r.data);
+  S.data = {reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes};
+  S.pay = {}; paiements.forEach(p => (S.pay[p.prestation_id] ??= []).push(p));
+  S.cmap = Object.fromEntries(clientes.map(c => [c.id, c]));
+  S.pmap = Object.fromEntries(produits.map(p => [p.id, p]));
+}
+async function refresh() { try { await load(); render(); } catch (e) { toast(e.message || 'Erreur de chargement', true); } }
+const paid = p => sum(S.pay[p.id] || [], 'montant');
+
+/* ---------- Fenêtre de saisie ---------- */
+function modal(title, body, onSubmit, label = 'Enregistrer') {
+  const dlg = $('#dlg');
+  dlg.innerHTML = `<form id="mf"><header><h2>${title}</h2><button type="button" class="x" data-act="close" aria-label="Fermer">×</button></header>
+    <div class="mbody">${body}</div>${onSubmit ? `<footer><button class="btn" type="submit">${label}</button></footer>` : '<footer></footer>'}</form>`;
+  $('#mf').onsubmit = async e => {
+    e.preventDefault();
+    if (!onSubmit) return;
+    const btn = e.submitter; if (btn) btn.disabled = true;
+    try { await onSubmit(Object.fromEntries(new FormData(e.target))); dlg.close(); await refresh(); toast('Enregistré'); }
+    catch (err) { toast(err.message || 'Erreur', true); if (btn) btn.disabled = false; }
+  };
+  if (!dlg.open) dlg.showModal();
+  dlg.scrollTop = 0;
+}
+const f = (label, inner) => `<label>${label}${inner}</label>`;
+const opts = (pairs, sel) => pairs.map(([v, l]) => `<option value="${esc(v)}" ${String(v) === String(sel) ? 'selected' : ''}>${esc(l)}</option>`).join('');
+const optsObj = (o, sel) => opts(Object.entries(o), sel);
+
+/* ---------- Vues ---------- */
+const VIEWS = {accueil, prestations, clientes, depenses, plus};
+
+function accueil() {
+  const {reg, depenses, paiements, prelevements, prestas} = S.data;
+  const env = reg.enveloppe_periode === 'semaine' ? weekRange() : monthRange(0);
+  const spent = sum(depenses.filter(x => x.categorie === 'perso' && inR(x.date_depense, env)), 'montant');
+  const budget = +reg.enveloppe_montant || 0, left = budget - spent, pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0;
+  const per = reg.enveloppe_periode === 'semaine' ? 'cette semaine' : 'ce mois-ci';
+  const hero = budget > 0
+    ? `<section class="hero"><p class="lead">Il te reste ${per}</p><p class="big num ${left < 0 ? 'neg' : ''}">${eur(left)}</p>
+       <div class="bar" role="img" aria-label="${Math.round(pct)} % de l'enveloppe dépensée"><i style="width:${pct}%"></i></div>
+       <p class="sub num">${eur(spent)} dépensés sur ${eur(budget)}</p></section>`
+    : `<section class="hero"><p class="lead">Ton enveloppe perso</p><p class="sub" style="margin-top:8px">Choisis un montant pour voir ce qu'il te reste à dépenser.</p>
+       <button class="btn" data-act="tab" data-k="plus">Ouvrir les réglages</button></section>`;
+
+  const mr = monthRange(S.monthOffset);
+  const pm = paiements.filter(x => inR(x.date_paiement, mr));
+  const enc = sum(pm, 'montant'), urs = sum(pm, 'urssaf_montant');
+  const dpro = sum(depenses.filter(x => x.categorie !== 'perso' && inR(x.date_depense, mr)), 'montant');
+  const byMoyen = Object.entries(MOYENS).map(([k, l]) => [l, sum(pm.filter(x => x.moyen === k), 'montant')]).filter(x => x[1] > 0);
+  const label = mr[2].toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+
+  const y = new Date().getFullYear(), ca = sum(paiements.filter(x => inR(x.date_paiement, [`${y}-01-01`, `${y}-12-31`])), 'montant');
+  const plaf = +reg.plafond_ca || 0, pp = plaf > 0 ? Math.min(100, ca / plaf * 100) : 0;
+
+  const today = new Date().getDate();
+  const next = prelevements.filter(p => p.actif && p.jour_du_mois >= today);
+  const attente = prestas.filter(p => +p.montant_total - paid(p) > 0.009).slice(0, 5);
+
+  return `${hero}
+  <section>
+    <div class="sec-head"><h2>Le mois</h2>
+      <div class="monthnav"><button data-act="month" data-d="-1" aria-label="Mois précédent">‹</button><span>${label}</span><button data-act="month" data-d="1" aria-label="Mois suivant">›</button></div></div>
+    <div class="row"><span>Encaissé</span><span class="num">${eur(enc)}</span></div>
+    <div class="row"><span>À mettre de côté pour l'URSSAF</span><span class="num">${eur(urs)}</span></div>
+    <div class="row"><span>Dépenses pro</span><span class="num">${eur(dpro)}</span></div>
+    <div class="row total"><span>Il te reste après charges</span><span class="num ${enc - urs - dpro < 0 ? 'neg' : ''}">${eur(enc - urs - dpro)}</span></div>
+    ${byMoyen.length ? `<p class="muted small" style="margin-top:12px">Encaissé par moyen : ${byMoyen.map(([l, v]) => `${l} ${eur(v)}`).join(', ')}</p>` : ''}
+  </section>
+  ${attente.length ? `<section><div class="sec-head"><h2>Soldes à encaisser</h2></div>
+    ${attente.map(p => `<button class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(S.cmap[p.cliente_id]?.nom)}</b><small>${esc(p.type_prestation)}, ${dFR(p.date_prestation)}</small></span>
+      <span class="i-side num warn">${eur(+p.montant_total - paid(p))}</span></button>`).join('')}</section>` : ''}
+  ${plaf > 0 ? `<section><div class="sec-head"><h2>Plafond ${y}</h2><span class="num muted">${eur(ca)} sur ${eur(plaf)}</span></div>
+    <div class="bar slim" role="img" aria-label="${Math.round(pp)} % du plafond atteint"><i style="width:${pp}%"></i></div>
+    <p class="small ${pp >= 85 ? 'warn' : 'muted'}">${pp >= 85 ? 'Tu approches du plafond de chiffre d\'affaires.' : `Il reste ${eur(plaf - ca)} avant le plafond.`}</p></section>` : ''}
+  ${next.length ? `<section><div class="sec-head"><h2>Prélèvements à venir</h2><span class="num muted">${eur(sum(next, 'montant'))}</span></div>
+    ${next.map(p => `<div class="row"><span>${esc(p.libelle)}<small class="muted"> le ${p.jour_du_mois}</small></span><span class="num">${eur(p.montant)}</span></div>`).join('')}</section>` : ''}`;
+}
+
+function prestations() {
+  const {prestas} = S.data;
+  return `<section><div class="sec-head"><h2>Prestations</h2><button class="btn sm" data-act="newPresta">Nouvelle prestation</button></div>
+  ${prestas.length ? prestas.map(p => {
+    const rest = +p.montant_total - paid(p);
+    return `<button class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(S.cmap[p.cliente_id]?.nom)}</b><small>${esc(p.type_prestation)}, ${dFR(p.date_prestation)}</small></span>
+      <span class="i-side num">${eur(p.montant_total)}<small class="${rest > 0.009 ? 'warn' : 'ok'}">${rest > 0.009 ? 'Reste ' + eur(rest) : 'Payé'}</small></span></button>`;
+  }).join('') : '<p class="empty">Aucune prestation pour le moment. Ajoute la première avec le bouton ci-dessus.</p>'}</section>`;
+}
+
+function clienteList() {
+  const q = S.search.trim().toLowerCase();
+  const list = S.data.clientes.filter(c => !q || c.nom.toLowerCase().includes(q));
+  return list.length ? list.map(c => {
+    const last = S.data.prestas.find(p => p.cliente_id === c.id);
+    return `<button class="item" data-act="openCliente" data-id="${c.id}"><span class="i-main"><b>${esc(c.nom)}</b><small>${last ? 'Dernière venue le ' + dFR(last.date_prestation) : 'Pas encore de prestation'}</small></span></button>`;
+  }).join('') : `<p class="empty">${q ? 'Aucune cliente à ce nom.' : 'Aucune cliente pour le moment.'}</p>`;
+}
+function clientes() {
+  return `<section><div class="sec-head"><h2>Clientes</h2><button class="btn sm" data-act="newCliente">Nouvelle cliente</button></div>
+  <label style="margin-top:6px">Rechercher<input id="csearch" type="search" value="${esc(S.search)}" placeholder="Prénom ou nom"></label>
+  <div id="clist" style="margin-top:6px">${clienteList()}</div></section>`;
+}
+
+function depenses() {
+  const mr = monthRange(S.monthOffset), label = mr[2].toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+  const list = S.data.depenses.filter(x => inR(x.date_depense, mr));
+  const pro = sum(list.filter(x => x.categorie !== 'perso'), 'montant'), perso = sum(list.filter(x => x.categorie === 'perso'), 'montant');
+  const fourn = sum(list.filter(x => ['fournitures', 'investissement'].includes(x.categorie)), 'montant');
+  return `<section><div class="sec-head"><h2>Dépenses</h2><button class="btn sm" data-act="newDep">Nouvelle dépense</button></div>
+  <div class="monthnav" style="margin:10px 0 6px"><button data-act="month" data-d="-1" aria-label="Mois précédent">‹</button><span>${label}</span><button data-act="month" data-d="1" aria-label="Mois suivant">›</button></div>
+  <div class="row"><span>Pro</span><span class="num">${eur(pro)}</span></div>
+  <div class="row"><span>dont fournitures et investissements</span><span class="num">${eur(fourn)}</span></div>
+  <div class="row"><span>Perso</span><span class="num">${eur(perso)}</span></div>
+  <div style="margin-top:18px">${list.length ? list.map(x => `<div class="item"><span class="i-main"><b>${esc(x.libelle)}</b><small>${CATS[x.categorie]}, ${dFR(x.date_depense)}${x.moyen ? ', ' + MOYENS[x.moyen] : ''}</small></span>
+    <span class="i-side num">${eur(x.montant)}</span><button class="x" data-act="delDep" data-id="${x.id}" aria-label="Supprimer">×</button></div>`).join('')
+    : '<p class="empty">Aucune dépense ce mois-ci.</p>'}</div></section>`;
+}
+
+function plus() {
+  const {reg, produits, prelevements, revenus, campagnes, paiements} = S.data;
+  const actifs = produits.filter(p => !p.date_fin), finis = produits.filter(p => p.date_fin && p.date_achat);
+  const vie = {};
+  finis.forEach(p => { (vie[p.nom] ??= []).push(dayDiff(p.date_achat, p.date_fin)); });
+  const caSur = (a, b) => sum(paiements.filter(x => inR(x.date_paiement, [a, b])), 'montant');
+
+  return `<section><h2>Réglages</h2>
+  <form id="regf" style="margin-top:14px">
+    ${f('Taux URSSAF (%)', `<input name="taux" type="number" step="0.01" min="0" max="100" required value="${reg.taux_urssaf}">`)}
+    <div class="two">${f('Enveloppe perso (€)', `<input name="env" type="number" step="0.01" min="0" value="${reg.enveloppe_montant}">`)}
+    ${f('Par', `<select name="per">${opts([['semaine', 'Semaine'], ['mois', 'Mois']], reg.enveloppe_periode)}</select>`)}</div>
+    ${f('Plafond de chiffre d\'affaires annuel (€, facultatif)', `<input name="plafond" type="number" step="0.01" min="0" value="${reg.plafond_ca ?? ''}">`)}
+    <button class="btn" style="margin-top:18px">Enregistrer les réglages</button>
+  </form></section>
+
+  <section><div class="sec-head"><h2>Prélèvements fixes</h2><button class="btn sm" data-act="newPrel">Ajouter</button></div>
+  ${prelevements.length ? prelevements.map(p => `<div class="item"><span class="i-main"><b>${esc(p.libelle)}</b><small>Le ${p.jour_du_mois} du mois, ${p.actif ? 'actif' : 'suspendu'}</small></span>
+    <span class="i-side num">${eur(p.montant)}</span>
+    <button class="btn ghost sm" data-act="togglePrel" data-id="${p.id}">${p.actif ? 'Suspendre' : 'Réactiver'}</button>
+    <button class="x" data-act="delPrel" data-id="${p.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucun prélèvement fixe.</p>'}</section>
+
+  <section><div class="sec-head"><h2>Chômage et autres revenus</h2><button class="btn sm" data-act="newChom">Ajouter</button></div>
+  ${revenus.length ? revenus.slice(0, 12).map(r => `<div class="item"><span class="i-main"><b>${esc(r.libelle)}</b><small>${dFR(r.date_revenu)}</small></span>
+    <span class="i-side num">${eur(r.montant)}</span><button class="x" data-act="delChom" data-id="${r.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Rien d\'enregistré.</p>'}</section>
+
+  <section><div class="sec-head"><h2>Produits</h2><button class="btn sm" data-act="newProd">Nouveau produit</button></div>
+  ${Object.keys(vie).length ? `<p class="muted small" style="margin-bottom:6px">Durée de vie moyenne : ${Object.entries(vie).map(([n, a]) => `${esc(n)} ${Math.round(a.reduce((t, x) => t + x, 0) / a.length)} j`).join(', ')}</p>` : ''}
+  ${actifs.length ? actifs.map(p => `<div class="item"><span class="i-main"><b>${esc(p.nom)}</b><small>${PRODS[p.categorie]}${p.date_achat ? ', acheté le ' + dFR(p.date_achat) : ''}</small></span>
+    <button class="btn ghost sm" data-act="finiProd" data-id="${p.id}">Terminé</button><button class="x" data-act="delProd" data-id="${p.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucun produit en cours. Ajoute tes pads et teintures pour les choisir à chaque prestation.</p>'}</section>
+
+  <section><div class="sec-head"><h2>Publicités</h2><button class="btn sm" data-act="newPub">Nouvelle campagne</button></div>
+  ${campagnes.length ? campagnes.map(c => {
+    const len = dayDiff(c.date_debut, c.date_fin) + 1;
+    const pendant = caSur(c.date_debut, c.date_fin), avant = caSur(addDays(c.date_debut, -len), addDays(c.date_debut, -1));
+    const diff = pendant - avant;
+    return `<div class="item"><span class="i-main"><b>${esc(c.nom)}</b><small>Du ${dFR(c.date_debut)} au ${dFR(c.date_fin)}, budget ${eur(c.budget)}</small>
+      <small>Chiffre d'affaires ${eur(pendant)} pendant, ${eur(avant)} sur la même durée avant : <span class="${diff >= 0 ? 'ok' : 'neg'}">${diff >= 0 ? '+' : ''}${eur(diff)}</span></small></span>
+      <button class="x" data-act="delPub" data-id="${c.id}" aria-label="Supprimer">×</button></div>`;
+  }).join('') : '<p class="empty">Aucune campagne. Ajoutes-en une pour comparer ton chiffre d\'affaires avec et sans pub.</p>'}</section>
+
+  <section><button class="btn ghost" data-act="logout">Se déconnecter</button></section>`;
+}
+
+/* ---------- Rendu général ---------- */
+function render() {
+  const tabs = [['accueil', 'Accueil'], ['prestations', 'Prestations'], ['clientes', 'Clientes'], ['depenses', 'Dépenses'], ['plus', 'Réglages']];
+  app.innerHTML = `<header class="top"><div class="brand"><div class="mono" aria-hidden="true">EB</div><div class="word"><span>ENIRAM</span><small>BEAUTY</small></div></div>
+    <nav aria-label="Navigation">${tabs.map(([k, l]) => `<button data-act="tab" data-k="${k}" class="${S.tab === k ? 'on' : ''}" ${S.tab === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav></header>
+    <main>${VIEWS[S.tab]()}</main>`;
+}
+
+function loginView(msg) {
+  app.innerHTML = `<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Eniram Beauty</h1><p class="muted">Connecte-toi pour ouvrir ta compta.</p>
+  <form id="lf">${f('Adresse email', '<input name="email" type="email" required autocomplete="username">')}
+  ${f('Mot de passe', '<input name="password" type="password" required autocomplete="current-password">')}
+  <button class="btn">Se connecter</button><p class="err" id="lerr">${esc(msg || '')}</p></form></div>`;
+}
+
+/* ---------- Formulaires ---------- */
+function prestaForm(nom = '') {
+  const {clientes, produits} = S.data;
+  const pads = produits.filter(p => p.categorie === 'pad' && !p.date_fin).map(p => [p.id, p.nom]);
+  const tints = produits.filter(p => p.categorie === 'teinture' && !p.date_fin).map(p => [p.id, p.nom]);
+  modal('Nouvelle prestation', `
+    ${f('Cliente', `<input name="cliente" list="dl-cl" required autocomplete="off" value="${esc(nom)}" placeholder="Choisis ou écris un nouveau nom"><datalist id="dl-cl">${clientes.map(c => `<option value="${esc(c.nom)}">`).join('')}</datalist>`)}
+    <div class="two">${f('Date et heure', `<input name="date_prestation" type="datetime-local" required value="${nowLocal()}">`)}
+    ${f('Montant total (€)', '<input name="montant_total" type="number" step="0.01" min="0" required inputmode="decimal">')}</div>
+    ${f('Prestation', `<input name="type_prestation" list="dl-ty" required><datalist id="dl-ty">${TYPES.map(t => `<option value="${t}">`).join('')}</datalist>`)}
+    <h3 style="margin-top:22px">Encaissement</h3>
+    <div class="two">${f('Montant encaissé (€)', '<input name="encaisse" type="number" step="0.01" min="0" inputmode="decimal">')}
+    ${f('Type', `<select name="ptype">${opts([['solde', 'Solde'], ['acompte', 'Acompte']])}</select>`)}</div>
+    ${f('Moyen de paiement', `<select name="moyen">${optsObj(MOYENS)}</select>`)}
+    <h3 style="margin-top:22px">Ce que tu as utilisé</h3>
+    <div class="two">${f('Pad', `<select name="pad_id"><option value="">Aucun</option>${opts(pads)}</select>`)}
+    ${f('Taille', '<input name="pad_taille">')}</div>
+    ${f('Courbure', '<input name="pad_courbure" placeholder="ex. L, M, curl">')}
+    ${f('Teinture sourcils', `<select name="teinture_id"><option value="">Aucune</option>${opts(tints)}</select>`)}
+    ${f('Notes', '<textarea name="notes" placeholder="Retour de la cliente, ajustement pour la prochaine fois"></textarea>')}
+  `, async fd => {
+    const nomC = fd.cliente.trim();
+    let c = S.data.clientes.find(x => x.nom.trim().toLowerCase() === nomC.toLowerCase());
+    if (!c) { const r = await sb.from('clientes').insert({nom:nomC}).select().single(); if (r.error) throw r.error; c = r.data; }
+    const r = await sb.from('prestations').insert({
+      cliente_id:c.id, date_prestation:new Date(fd.date_prestation).toISOString(), type_prestation:fd.type_prestation.trim(), montant_total:+fd.montant_total,
+      pad_id:nz(fd.pad_id), pad_taille:nz(fd.pad_taille), pad_courbure:nz(fd.pad_courbure), teinture_id:nz(fd.teinture_id), notes:nz(fd.notes)
+    }).select().single();
+    if (r.error) throw r.error;
+    if (+fd.encaisse > 0) {
+      const p = await sb.from('paiements').insert({prestation_id:r.data.id, type:fd.ptype, montant:+fd.encaisse, moyen:fd.moyen, date_paiement:fd.date_prestation.slice(0, 10)});
+      if (p.error) throw p.error;
+    }
+  });
+}
+
+function payForm(p) {
+  const rest = Math.max(0, +p.montant_total - paid(p));
+  modal('Ajouter un paiement', `
+    <div class="two">${f('Montant (€)', `<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal" value="${rest || ''}">`)}
+    ${f('Type', `<select name="type">${opts([['solde', 'Solde'], ['acompte', 'Acompte']])}</select>`)}</div>
+    ${f('Moyen de paiement', `<select name="moyen">${optsObj(MOYENS)}</select>`)}
+    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}
+  `, async fd => {
+    const r = await sb.from('paiements').insert({prestation_id:p.id, type:fd.type, montant:+fd.montant, moyen:fd.moyen, date_paiement:fd.date});
+    if (r.error) throw r.error;
+  });
+}
+
+function clienteForm(c) {
+  modal(c ? 'Modifier la cliente' : 'Nouvelle cliente', `
+    ${f('Nom', `<input name="nom" required value="${esc(c?.nom)}">`)}
+    ${f('Téléphone', `<input name="telephone" type="tel" value="${esc(c?.telephone)}">`)}
+    ${f('Comment elle t\'a connue', `<input name="source" list="dl-src" value="${esc(c?.source)}"><datalist id="dl-src"><option value="Instagram"><option value="Bouche-à-oreille"><option value="Publicité"><option value="Autre"></datalist>`)}
+    ${f('Notes', `<textarea name="notes">${esc(c?.notes)}</textarea>`)}
+  `, async fd => {
+    const row = {nom:fd.nom.trim(), telephone:nz(fd.telephone), source:nz(fd.source), notes:nz(fd.notes)};
+    const r = c ? await sb.from('clientes').update(row).eq('id', c.id) : await sb.from('clientes').insert(row);
+    if (r.error) throw r.error;
+  });
+}
+
+function depForm() {
+  modal('Nouvelle dépense', `
+    ${f('Libellé', '<input name="libelle" required>')}
+    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
+    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
+    <div class="two">${f('Catégorie', `<select name="categorie">${optsObj(CATS)}</select>`)}
+    ${f('Moyen', `<select name="moyen"><option value="">Non précisé</option>${optsObj(MOYENS)}</select>`)}</div>
+  `, async fd => {
+    const r = await sb.from('depenses').insert({libelle:fd.libelle.trim(), montant:+fd.montant, date_depense:fd.date, categorie:fd.categorie, moyen:nz(fd.moyen)});
+    if (r.error) throw r.error;
+  });
+}
+
+function prelForm() {
+  modal('Nouveau prélèvement fixe', `
+    ${f('Libellé', '<input name="libelle" required>')}
+    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
+    ${f('Jour du mois', '<input name="jour" type="number" min="1" max="31" required inputmode="numeric">')}</div>
+    ${f('Catégorie (facultatif)', '<input name="categorie">')}
+  `, async fd => {
+    const r = await sb.from('prelevements_fixes').insert({libelle:fd.libelle.trim(), montant:+fd.montant, jour_du_mois:+fd.jour, categorie:nz(fd.categorie)});
+    if (r.error) throw r.error;
+  });
+}
+
+function chomForm() {
+  modal('Nouveau revenu', `
+    ${f('Libellé', '<input name="libelle" required value="Chômage">')}
+    <div class="two">${f('Montant (€)', '<input name="montant" type="number" step="0.01" min="0.01" required inputmode="decimal">')}
+    ${f('Date', `<input name="date" type="date" required value="${iso(new Date())}">`)}</div>
+  `, async fd => {
+    const r = await sb.from('revenus_perso').insert({libelle:fd.libelle.trim(), montant:+fd.montant, date_revenu:fd.date});
+    if (r.error) throw r.error;
+  });
+}
+
+function prodForm() {
+  modal('Nouveau produit', `
+    ${f('Nom', '<input name="nom" required>')}
+    <div class="two">${f('Type', `<select name="categorie">${optsObj(PRODS)}</select>`)}
+    ${f('Prix (€)', '<input name="prix" type="number" step="0.01" min="0" inputmode="decimal">')}</div>
+    ${f('Date d\'achat', `<input name="date_achat" type="date" value="${iso(new Date())}">`)}
+    <label class="check"><input type="checkbox" name="depense" checked> Ajouter aussi aux dépenses</label>
+  `, async fd => {
+    const r = await sb.from('produits').insert({nom:fd.nom.trim(), categorie:fd.categorie, prix:nz(fd.prix), date_achat:nz(fd.date_achat)}).select().single();
+    if (r.error) throw r.error;
+    if (fd.depense && +fd.prix > 0) {
+      const d = await sb.from('depenses').insert({libelle:fd.nom.trim(), montant:+fd.prix, date_depense:fd.date_achat || iso(new Date()),
+        categorie:fd.categorie === 'fourniture' || fd.categorie === 'pad' || fd.categorie === 'teinture' ? 'fournitures' : 'autre', produit_id:r.data.id});
+      if (d.error) throw d.error;
+    }
+  });
+}
+
+function pubForm() {
+  modal('Nouvelle campagne', `
+    ${f('Nom', '<input name="nom" required placeholder="ex. Pub Instagram de novembre">')}
+    <div class="two">${f('Début', `<input name="debut" type="date" required value="${iso(new Date())}">`)}
+    ${f('Fin', `<input name="fin" type="date" required value="${addDays(iso(new Date()), 6)}">`)}</div>
+    ${f('Budget (€)', '<input name="budget" type="number" step="0.01" min="0" required inputmode="decimal">')}
+    <label class="check"><input type="checkbox" name="depense" checked> Ajouter aussi aux dépenses</label>
+  `, async fd => {
+    if (fd.fin < fd.debut) throw new Error('La fin doit être après le début.');
+    const r = await sb.from('campagnes_pub').insert({nom:fd.nom.trim(), date_debut:fd.debut, date_fin:fd.fin, budget:+fd.budget});
+    if (r.error) throw r.error;
+    if (fd.depense && +fd.budget > 0) {
+      const d = await sb.from('depenses').insert({libelle:fd.nom.trim(), montant:+fd.budget, date_depense:fd.debut, categorie:'pub'});
+      if (d.error) throw d.error;
+    }
+  });
+}
+
+/* ---------- Fiches ---------- */
+function prestaDetail(id) {
+  const p = S.data.prestas.find(x => x.id === id); if (!p) return;
+  const c = S.cmap[p.cliente_id], pays = (S.pay[p.id] || []).slice().sort((a, b) => a.date_paiement < b.date_paiement ? 1 : -1);
+  const rest = +p.montant_total - paid(p);
+  const mat = [p.pad_id && S.pmap[p.pad_id]?.nom, p.pad_taille && 'taille ' + p.pad_taille, p.pad_courbure && 'courbure ' + p.pad_courbure].filter(Boolean).join(', ');
+  modal(esc(c?.nom), `
+    <p class="muted">${esc(p.type_prestation)}, ${new Date(p.date_prestation).toLocaleString('fr-FR', {dateStyle:'long', timeStyle:'short'})}</p>
+    <div class="row" style="margin-top:12px"><span>Montant total</span><span class="num">${eur(p.montant_total)}</span></div>
+    <div class="row"><span>Encaissé</span><span class="num">${eur(paid(p))}</span></div>
+    <div class="row"><span>Reste à payer</span><span class="num ${rest > 0.009 ? 'warn' : 'ok'}">${rest > 0.009 ? eur(rest) : 'Rien'}</span></div>
+    <h3 style="margin-top:22px">Paiements</h3>
+    ${pays.length ? pays.map(x => `<div class="item"><span class="i-main"><b>${x.type === 'acompte' ? 'Acompte' : 'Solde'}, ${MOYENS[x.moyen]}</b><small>${dFR(x.date_paiement)}, URSSAF ${eur(x.urssaf_montant)}</small></span>
+      <span class="i-side num">${eur(x.montant)}</span><button type="button" class="x" data-act="delPay" data-id="${x.id}" data-pid="${p.id}" aria-label="Supprimer le paiement">×</button></div>`).join('') : '<p class="empty">Aucun paiement enregistré.</p>'}
+    ${(mat || p.teinture_id || p.notes) ? `<h3 style="margin-top:22px">Utilisé</h3>
+      ${mat ? `<div class="row"><span>Cils</span><span>${esc(mat)}</span></div>` : ''}
+      ${p.teinture_id ? `<div class="row"><span>Teinture</span><span>${esc(S.pmap[p.teinture_id]?.nom)}</span></div>` : ''}
+      ${p.notes ? `<p style="margin-top:12px">${esc(p.notes)}</p>` : ''}` : ''}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 14px">
+      <button type="button" class="btn" data-act="payAdd" data-id="${p.id}">Ajouter un paiement</button>
+      <button type="button" class="btn danger sm" data-act="delPresta" data-id="${p.id}">Supprimer</button></div>
+  `, null);
+}
+
+function clienteDetail(id) {
+  const c = S.cmap[id]; if (!c) return;
+  const hist = S.data.prestas.filter(p => p.cliente_id === id), last = hist[0];
+  const mat = last ? [last.pad_id && S.pmap[last.pad_id]?.nom, last.pad_taille && 'taille ' + last.pad_taille, last.pad_courbure && 'courbure ' + last.pad_courbure].filter(Boolean).join(', ') : '';
+  modal(esc(c.nom), `
+    ${(c.telephone || c.source) ? `<p class="muted">${[c.telephone, c.source && 'connue par ' + c.source].filter(Boolean).map(esc).join(', ')}</p>` : ''}
+    ${c.notes ? `<p style="margin-top:8px">${esc(c.notes)}</p>` : ''}
+    <h3 style="margin-top:22px">La dernière fois</h3>
+    ${last ? `<div class="hero" style="padding:18px 20px;border-radius:20px;margin-top:10px"><p class="muted small">${esc(last.type_prestation)}, ${dFR(last.date_prestation)}</p>
+      <p style="margin-top:6px">${mat ? 'Cils : ' + esc(mat) : 'Pas de pad noté'}</p>
+      <p>${last.teinture_id ? 'Teinture : ' + esc(S.pmap[last.teinture_id]?.nom) : 'Pas de teinture notée'}</p>
+      ${last.notes ? `<p style="margin-top:6px">${esc(last.notes)}</p>` : ''}</div>` : '<p class="empty">Pas encore de prestation.</p>'}
+    ${hist.length > 1 ? `<h3 style="margin-top:22px">Historique</h3>${hist.map(p => `<button type="button" class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(p.type_prestation)}</b><small>${dFR(p.date_prestation)}</small></span><span class="i-side num">${eur(p.montant_total)}</span></button>`).join('')}` : ''}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 14px">
+      <button type="button" class="btn" data-act="newPresta" data-nom="${esc(c.nom)}">Nouvelle prestation</button>
+      <button type="button" class="btn ghost" data-act="editCliente" data-id="${c.id}">Modifier</button></div>
+  `, null);
+}
+
+/* ---------- Actions ---------- */
+async function del(table, id, msg, after) {
+  if (!confirm(msg)) return;
+  const {error} = await sb.from(table).delete().eq('id', id);
+  if (error) return toast(error.message, true);
+  await refresh(); toast('Supprimé'); if (after) after();
+}
+const ACTS = {
+  close() { $('#dlg').close(); },
+  tab(d) { S.tab = d.k; render(); scrollTo(0, 0); },
+  month(d) { S.monthOffset += +d.d; render(); },
+  async logout() { await sb.auth.signOut(); },
+  newPresta(d) { prestaForm(d.nom || ''); },
+  openPresta(d) { prestaDetail(d.id); },
+  payAdd(d) { payForm(S.data.prestas.find(p => p.id === d.id)); },
+  delPresta(d) { del('prestations', d.id, 'Supprimer cette prestation et ses paiements ?', () => $('#dlg').close()); },
+  delPay(d) { del('paiements', d.id, 'Supprimer ce paiement ?', () => prestaDetail(d.pid)); },
+  newCliente() { clienteForm(); },
+  editCliente(d) { clienteForm(S.cmap[d.id]); },
+  openCliente(d) { clienteDetail(d.id); },
+  newDep() { depForm(); },
+  delDep(d) { del('depenses', d.id, 'Supprimer cette dépense ?'); },
+  newPrel() { prelForm(); },
+  async togglePrel(d) {
+    const p = S.data.prelevements.find(x => x.id === d.id);
+    const {error} = await sb.from('prelevements_fixes').update({actif:!p.actif}).eq('id', d.id);
+    if (error) return toast(error.message, true);
+    await refresh(); toast(p.actif ? 'Prélèvement suspendu' : 'Prélèvement réactivé');
+  },
+  delPrel(d) { del('prelevements_fixes', d.id, 'Supprimer ce prélèvement ?'); },
+  newChom() { chomForm(); },
+  delChom(d) { del('revenus_perso', d.id, 'Supprimer ce revenu ?'); },
+  newProd() { prodForm(); },
+  async finiProd(d) {
+    const {error} = await sb.from('produits').update({date_fin:iso(new Date())}).eq('id', d.id);
+    if (error) return toast(error.message, true);
+    await refresh(); toast('Produit marqué comme terminé');
+  },
+  delProd(d) { del('produits', d.id, 'Supprimer ce produit ?'); },
+  newPub() { pubForm(); },
+  delPub(d) { del('campagnes_pub', d.id, 'Supprimer cette campagne ?'); }
+};
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (el && ACTS[el.dataset.act]) ACTS[el.dataset.act](el.dataset, el);
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'csearch') { S.search = e.target.value; $('#clist').innerHTML = clienteList(); }
+});
+document.addEventListener('submit', async e => {
+  if (e.target.id === 'lf') {
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target));
+    const {error} = await sb.auth.signInWithPassword({email:fd.email.trim(), password:fd.password});
+    if (error) return loginView('Email ou mot de passe incorrect.');
+    return refresh();
+  }
+  if (e.target.id === 'regf') {
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target));
+    const {error} = await sb.from('reglages').update({
+      taux_urssaf:+fd.taux, enveloppe_montant:+fd.env || 0, enveloppe_periode:fd.per,
+      plafond_ca:nz(fd.plafond) == null ? null : +fd.plafond, updated_at:new Date().toISOString()
+    }).eq('id', 1);
+    if (error) return toast(error.message, true);
+    await refresh(); toast('Réglages enregistrés');
+  }
+});
+
+/* ---------- Démarrage ---------- */
+async function init() {
+  if (!CONFIGURED) {
+    app.innerHTML = '<div class="login"><div class="mono big">EB</div><h1>Presque prêt</h1><p class="muted">Ouvre le fichier et remplace les deux lignes SUPABASE_URL et SUPABASE_KEY au début du script par celles de ton projet.</p></div>';
+    return;
+  }
+  sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') loginView(); });
+  const {data:{session}} = await sb.auth.getSession();
+  if (!session) return loginView();
+  await refresh();
+}
+init();
+</script>
+</body>
+</html>
