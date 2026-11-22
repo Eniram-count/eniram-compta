@@ -226,6 +226,7 @@ nav .fab .fabl{display:none}
 }
 .btn.sm{white-space:nowrap}
 .monthnav span{font-family:var(--sans);font-style:normal;font-weight:600;text-transform:capitalize}
+.rdvw{display:flex;align-items:center;gap:6px;margin-bottom:8px}.rdvw .rdv{margin-bottom:0}.ign{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--ligne);background:#fff;color:#8a7a80;font-size:15px;cursor:pointer}.ghostw{display:block;width:100%;min-height:44px;margin-top:6px;background:transparent;border:0;color:#fff;opacity:.9;font-size:13px;text-decoration:underline;cursor:pointer}
 </style>
 </head>
 <body>
@@ -543,7 +544,7 @@ function prestations() {
   const A = S.agenda, evs = rdvList();
   const plan = evs ? (evs.length ? evs.slice(0, 15).map(rdvRow).join('') : '<p class="empty">Aucun rendez-vous dans les 45 prochains jours.</p>')
     : `<p class="empty">${A && A.error ? esc(A.error) : 'Agenda non connecté. Colle le lien privé Google Agenda dans Plus, puis Réglages.'}</p>`;
-  return `<section><div class="sec-head"><h2>Planning</h2></div>${plan}</section>
+  return `<section><div class="sec-head"><h2>Planning</h2></div>${plan}${JSON.parse(lsGet('eb_ign') || '[]').length ? '<button class="btn ghost" data-act="showIgn">Réafficher les rendez-vous masqués</button>' : ''}</section>
   <section><div class="sec-head"><h2>Passées</h2><button class="btn sm" data-act="newPresta">Nouvelle prestation</button></div>
   ${prestas.length ? shown.map(p => {
     const rest = +p.montant_total - paid(p);
@@ -569,14 +570,14 @@ function clientes() {
 /* ---------- Vues Eniram ---------- */
 
 const relDay = d => { const t = iso(new Date()), x = iso(d); return x === t ? 'Aujourd\'hui' : x === addDays(t, 1) ? 'Demain' : jFR(d); };
-const rdvList = () => { const A = S.agenda; if (!A || A.error || !A.configured) return null; const now = Date.now(); return A.events.filter(e => { if (e.allDay || new Date(e.end).getTime() < now) return false; const x = (S.ia || {})[e.title + '|' + e.start]; return !(x && x.prestation === false); }); };
+const rdvList = () => { const A = S.agenda; if (!A || A.error || !A.configured) return null; const now = Date.now(); return A.events.filter(e => { if (e.allDay || new Date(e.end).getTime() < now) return false; const x = (S.ia || {})[e.title + '|' + e.start]; return !(x && x.prestation === false) && !JSON.parse(lsGet('eb_ign') || '[]').includes(e.title + '|' + e.start); }); };
 function rdvRow(e) {
   const i = rdvInfo(e), d = i.d, total = i.pr ? +i.pr.montant_total : 0;
   const svc = i.ia && i.ia.service ? i.ia.service : '', px = i.ia && i.ia.prix != null ? i.ia.prix : null;
   const pill = !i.pr ? `<span class="pill amber">${i.ia && !i.c ? 'Nouvelle cliente' : 'À enregistrer'}</span>` : i.acompte > 0 ? `<span class="pill green">Acompte ${eur(i.acompte)}</span>` : '<span class="pill amber">Sans acompte</span>';
   const act = i.pr ? `data-act="openPresta" data-id="${i.pr.id}"` : `data-act="newPresta" data-nom="${esc(i.c ? i.c.nom : (i.ia ? i.ia.cliente : ''))}" data-type="${esc(svc)}" data-date="${iso(d)}T${z2(d.getHours())}:${z2(d.getMinutes())}"`;
-  return `<button class="rdv" ${act}><span class="dbox"><small>${d.toLocaleDateString('fr-FR', {weekday:'short'}).replace('.', '')}</small><b>${d.getDate()}</b></span>
-    <span class="i-main"><b>${esc(i.c ? i.c.nom : (i.ia && i.ia.cliente ? i.ia.cliente : e.title))}</b><small>${hFR(d)}${i.pr ? ', ' + esc(i.pr.type_prestation) + ' · ' + eur(total) : (svc ? ', ' + esc(svc) + (px != null ? ' · ' + eur(px) : '') : (i.c ? ', ' + esc(e.title) : ''))}</small></span>${pill}</button>`;
+  return `<div class="rdvw"><button class="rdv" ${act}><span class="dbox"><small>${d.toLocaleDateString('fr-FR', {weekday:'short'}).replace('.', '')}</small><b>${d.getDate()}</b></span>
+    <span class="i-main"><b>${esc(i.c ? i.c.nom : (i.ia && i.ia.cliente ? i.ia.cliente : e.title))}</b><small>${hFR(d)}${i.pr ? ', ' + esc(i.pr.type_prestation) + ' · ' + eur(total) : (svc ? ', ' + esc(svc) + (px != null ? ' · ' + eur(px) : '') : (i.c ? ', ' + esc(e.title) : ''))}</small></span>${pill}</button>${i.pr ? '' : `<button class="ign" data-act="ignRdv" data-key="${esc(e.title + '|' + e.start)}" aria-label="Ce n'est pas une prestation" title="Ce n'est pas une prestation">✕</button>`}</div>`;
 }
 function nextHero() {
   const A = S.agenda; if (!A) return '';
@@ -588,7 +589,7 @@ function nextHero() {
   return `<section class="hero2"><div class="eyebrow"><span>Prochaine prestation</span><span class="when">${relDay(n.d)}, ${hFR(n.d)}</span></div>
     <div><div class="who">${esc(n.c ? n.c.nom : (n.ia && n.ia.cliente ? n.ia.cliente : e.title))}</div><div class="what">${n.pr ? esc(n.pr.type_prestation) : (n.ia && n.ia.service ? esc(n.ia.service) + (n.ia.prix != null ? ' · ' + eur(n.ia.prix) : '') : (n.c && e.title ? esc(e.title) : 'Prestation à enregistrer'))}</div></div>
     ${n.pr ? `<div class="tiles"><div class="tile"><small>Prix</small><b class="num">${eur(total)}</b></div><div class="tile"><small>Acompte reçu</small><b class="num">${eur(n.acompte)}</b></div><div class="tile w"><small>Reste à payer</small><b class="num">${eur(reste)}</b></div></div>`
-      : `<button class="btn" data-act="newPresta" data-nom="${esc(n.c ? n.c.nom : (n.ia ? n.ia.cliente : ''))}" data-type="${esc(n.ia ? n.ia.service : '')}" data-date="${iso(n.d)}T${z2(n.d.getHours())}:${z2(n.d.getMinutes())}">Enregistrer la prestation</button>`}</section>`;
+      : `<button class="btn" data-act="newPresta" data-nom="${esc(n.c ? n.c.nom : (n.ia ? n.ia.cliente : ''))}" data-type="${esc(n.ia ? n.ia.service : '')}" data-date="${iso(n.d)}T${z2(n.d.getHours())}:${z2(n.d.getMinutes())}">Enregistrer la prestation</button><button class="ghostw" data-act="ignRdv" data-key="${esc(e.title + '|' + e.start)}">Ce n'est pas une prestation</button>`}</section>`;
 }
 const upcomingHtml = (skipFirst, max) => { const evs = rdvList(); if (!evs || evs.length <= (skipFirst ? 1 : 0)) return ''; return `<section><div class="sec-head"><h2>À venir</h2></div>${evs.slice(skipFirst ? 1 : 0, (skipFirst ? 1 : 0) + max).map(rdvRow).join('')}</section>`; };
 
@@ -618,7 +619,7 @@ function eniHome() {
     <div class="bub big"><small>Encaissé en ${monthName(m.r)}</small><div class="v num">${eur(m.enc)}</div>${delta(m.enc, pv.enc)}</div>
     <div class="bub amber"><small>À mettre de côté (URSSAF)</small><div class="v num">${eur(m.urs)}</div></div>
     <div class="bub green"><small>Ton salaire ${vs}</small><div class="v num">${eur(m.salaireRef)}</div></div></div>${partialNote()}</section>`;
-  return `<div class="hello"><p class="muted small">${new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})}</p><h1>Bonjour</h1></div>
+  return `<div class="hello"><p class="muted small">${new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})}</p><h1>Bonjour ${esc(lsGet('eb_prenom') || 'Marine')}</h1></div>
   ${alertsHtml(alerts('eniram'))}${nextHero()}${bubbles}${upcomingHtml(true, 4)}${soldHtml}
   <details class="more"><summary>Voir tout le détail du mois</summary>
   <section><div class="sec-head"><h2>Répartition du mois</h2></div>
@@ -1323,6 +1324,8 @@ const ACTS = {
   delChom(d) { del('revenus_perso', d.id, 'Supprimer ce revenu ?'); },
   newProd() { prodForm(); },
   allPrestas() { S.allPrestas = true; render(); },
+  ignRdv(d) { const l = JSON.parse(lsGet('eb_ign') || '[]'); if (d.key && !l.includes(d.key)) l.push(d.key); lsSet('eb_ign', JSON.stringify(l.slice(-200))); render(); },
+  showIgn() { lsSet('eb_ign', '[]'); render(); },
   newService() { serviceForm(); },
   editService(d) { serviceForm(S.data.services.find(x => x.id === d.id)); },
   delService(d) { del('services', d.id, 'Supprimer cette prestation de la liste ?'); },
