@@ -513,10 +513,10 @@ async function loadAgenda() {
 async function loadIA() {
   try {
     const A = S.agenda; if (!A || !A.configured || S.iaOff) return;
-    S.ia ??= JSON.parse(lsGet('eb_ia2') || '{}');
+    const fresh = !S.ia; S.ia ??= JSON.parse(lsGet('eb_ia2') || '{}');
     const now = Date.now(), evs = A.events.filter(e => !e.allDay && new Date(e.end).getTime() >= now - 7 * 864e5).slice(0, 28);
     const todo = evs.filter(e => !S.ia[e.title + '|' + e.start]);
-    if (!todo.length) return;
+    if (!todo.length) { if (fresh && S.profile === 'eniram' && ['accueil', 'prestations'].includes(S.tab)) render(); return; }
     const {data} = await sb.auth.getSession(); const tok = data && data.session && data.session.access_token; if (!tok) return;
     const r = await fetch('/api/ia', {method:'POST', headers:{Authorization:'Bearer ' + tok, 'Content-Type':'application/json'},
       body:JSON.stringify({events:todo.map(e => ({id:e.title + '|' + e.start, title:e.title, start:e.start, desc:e.desc})), clientes:S.data.clientes.map(c => c.nom), services:(S.data.services || []).filter(x => x.actif).map(x => ({nom:x.nom, prix:x.prix}))})});
