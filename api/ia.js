@@ -21,8 +21,8 @@ module.exports = async (req, res) => {
     const services = (Array.isArray(body.services) ? body.services : []).slice(0, 60).map(s => ({nom: cut(s.nom, 80), prix: +s.prix || 0}));
     const prompt = `Tu aides une praticienne de rehaussement de cils et de sourcils (Eniram Beauty) à lire son agenda.
 Pour chaque rendez-vous, déduis du titre et de la description :
-- "cliente" : le nom de la cliente. Choisis le nom de la liste des clientes connues qui correspond le mieux (tolère fautes de frappe, prénom seul, pseudo Instagram). Si aucune ne correspond, écris le nom tel qu'il apparaît et mets "clienteConnue" à false.
-- "prestation" : true si c'est un rendez-vous avec une cliente pour une prestation cils/sourcils ; false pour tout le reste (cours, repas, mosquée, rendez-vous perso, etc.).
+- "cliente" : le nom de la cliente. Attention : « sœur de X », « amie de X », « copine de X » désigne une AUTRE personne que X : écris « Sœur de X » et mets clienteConnue à false, ne choisis jamais X. Choisis le nom de la liste des clientes connues qui correspond le mieux (tolère fautes de frappe, prénom seul, pseudo Instagram). Si aucune ne correspond, écris le nom tel qu'il apparaît et mets "clienteConnue" à false.
+- "prestation" : true si le titre cite une prestation (lashlift, lash lift, cils, sourcils, browlift, teinture, botox, pack, restructuration, formation, modèle) OU si le titre est simplement le nom ou le pseudo d'une cliente connue ; false pour tout le reste (cours, repas, resto, mosquée, lecture, anniversaire, courses, rendez-vous perso, etc.).
 - "service" : EXACTEMENT un nom de la liste des prestations proposées si l'une correspond clairement, sinon une chaîne vide.
 - "prix" : le prix écrit dans le rendez-vous si présent, sinon le prix de la prestation de la liste, sinon null.
 - "acompte" : le montant d'acompte déjà versé s'il est mentionné, sinon null.
