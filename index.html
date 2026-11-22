@@ -196,7 +196,8 @@ const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
 const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
 const inR = (d, [a, b]) => d >= a && d <= b;
 
-const MOYENS = {especes:'Espèces', cb:'Carte', revolut:'Revolut', virement:'Virement', autre:'Autre'};
+const MOYENS_DEP = {especes:'Espèces', cb:'Carte', revolut:'Revolut', virement:'Virement', autre:'Autre'};
+const MOYENS = {...MOYENS_DEP, wero:'Wero', paypal:'PayPal', lydia:'Lydia'};
 const CATS = {fournitures:'Fournitures', investissement:'Investissement', pub:'Pub', charge_variable:'Charge variable', perso:'Perso', autre:'Autre'};
 const PRODS = {pad:'Pad', teinture:'Teinture', fourniture:'Fourniture'};
 const TYPES = ['Rehaussement de cils', 'Korean lashlift', 'Browlift', 'Restructuration sourcils', 'Teinture sourcils', 'Autre'];
@@ -216,6 +217,7 @@ function toast(msg, bad) {
   const t = $('#toast'); t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : ''); t.hidden = false;
   clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3200);
 }
+
 
 /* ---------- Constantes ---------- */
 const CATS_PRO = {fournitures:'Fournitures', investissement:'Investissement', pub:'Pub', charge_variable:'Charge variable', autre:'Autre'};
@@ -251,24 +253,24 @@ async function load() {
     t('clientes', ['nom', true]), t('produits', ['created_at', false]), t('prestations', ['date_prestation', false]),
     t('paiements', ['date_paiement', false]), t('depenses', ['date_depense', false]), t('prelevements_fixes', ['created_at', true]),
     t('revenus_perso', ['date_revenu', false]), t('campagnes_pub', ['date_debut', false]), t('comptes', ['created_at', true]),
-    t('transferts', ['date_transfert', false]), t('urssaf_paiements', ['date_paiement', false]), t('budgets_mensuels', ['mois', false]), t('categories_perso', ['ordre', true])
+    t('transferts', ['date_transfert', false]), t('urssaf_paiements', ['date_paiement', false]), t('budgets_mensuels', ['mois', false]), t('categories_perso', ['ordre', true]), t('services', ['ordre', true])
   ]);
   const bad = res.find(r => r.error); if (bad) throw bad.error;
-  const [reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes, transferts, urssafPay, budgets, categories] = res.map(r => r.data);
-  S.data = {reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes, transferts, urssafPay, budgets, categories};
+  const [reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes, transferts, urssafPay, budgets, categories, services] = res.map(r => r.data);
+  S.data = {reg, clientes, produits, prestas, paiements, depenses, prelevements, revenus, campagnes, comptes, transferts, urssafPay, budgets, categories, services};
   S.pay = {}; paiements.forEach(p => (S.pay[p.prestation_id] ??= []).push(p));
   S.cmap = Object.fromEntries(clientes.map(c => [c.id, c]));
   S.pmap = Object.fromEntries(produits.map(p => [p.id, p]));
   S.cpt = Object.fromEntries(comptes.map(c => [c.id, c]));
-  const dates = [...paiements.map(x => x.date_paiement), ...depenses.map(x => x.date_depense), ...revenus.filter(x => x.statut === 'recu').map(x => x.date_revenu), ...prestas.map(x => dloc(x.date_prestation)), ...transferts.map(x => x.date_transfert)];
+  const dates = [...paiements.filter(x => !x.historique).map(x => x.date_paiement), ...depenses.map(x => x.date_depense), ...revenus.filter(x => x.statut === 'recu').map(x => x.date_revenu), ...prestas.filter(x => !x.historique).map(x => dloc(x.date_prestation)), ...transferts.map(x => x.date_transfert)];
   S.first = (dates.length ? dates.reduce((a, b) => a < b ? a : b) : iso(new Date())).slice(0, 7) + '-01';
 }
 async function refresh() {
   try { await load(); render(); loadAgenda(); }
   catch (e) {
     const m = e.message || '';
-    if (/transferts|urssaf_paiements|budgets_mensuels|categories_perso|statut|part_salaire|frequence|univers|exceptionnelle|compte_id|comptes/.test(m)) {
-      app.innerHTML = '<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Une mise à jour est nécessaire</h1><p class="muted">Lance le script « migration v3 » dans l\'éditeur SQL de Supabase, puis recharge cette page.</p></div>';
+    if (/transferts|urssaf_paiements|budgets_mensuels|categories_perso|statut|part_salaire|frequence|univers|exceptionnelle|compte_id|comptes|services|historique/.test(m)) {
+      app.innerHTML = '<div class="login"><div class="mono big" aria-hidden="true">EB</div><h1>Une mise à jour est nécessaire</h1><p class="muted">Lance le script « migration v4 » dans l\'éditeur SQL de Supabase, puis recharge cette page.</p></div>';
     } else toast(m || 'Erreur de chargement', true);
   }
 }
@@ -446,6 +448,7 @@ function modal(title, body, onSubmit, label = 'Enregistrer') {
 const f = (label, inner) => `<label>${label}${inner}</label>`;
 const opts = (pairs, sel) => pairs.map(([v, l]) => `<option value="${esc(v)}" ${String(v) === String(sel) ? 'selected' : ''}>${esc(l)}</option>`).join('');
 const optsObj = (o, sel) => opts(Object.entries(o), sel);
+
 function prestations() {
   const {prestas} = S.data;
   return `<section><div class="sec-head"><h2>Prestations</h2><button class="btn sm" data-act="newPresta">Nouvelle prestation</button></div>
@@ -587,6 +590,10 @@ function eniPlus() {
   <section><div class="sec-head"><h2>URSSAF payée</h2><button class="btn sm" data-act="newUrssaf">Ajouter</button></div>
   ${urssafPay.length ? urssafPay.slice(0, 12).map(u => `<div class="item"><span class="i-main"><b>${esc(u.periode || 'Paiement URSSAF')}</b><small>${dFR(u.date_paiement)}${u.compte_id ? ', ' + esc(cname(u.compte_id)) : ''}</small></span>
     <span class="i-side num">${eur(u.montant)}</span><button class="x" data-act="delUrssaf" data-id="${u.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucun paiement URSSAF enregistré.</p>'}</section>
+  <section><div class="sec-head"><h2>Prestations proposées</h2><button class="btn sm" data-act="newService">Ajouter</button></div>
+  ${(S.data.services || []).length ? S.data.services.map(x => `<div class="item"><span class="i-main"><b>${esc(x.nom)}</b><small>${eur(x.prix)}</small></span>
+    <button class="btn ghost sm" data-act="editService" data-id="${x.id}">Modifier</button><button class="x" data-act="delService" data-id="${x.id}" aria-label="Supprimer">×</button></div>`).join('') : '<p class="empty">Aucune prestation. Ajoute-les pour les choisir dans une liste.</p>'}</section>
+  ${(() => { const h = paiements.filter(p => p.historique); const z = h.filter(p => +p.taux_urssaf === 0); return h.length ? `<section><h2>Historique importé</h2><p class="muted small" style="margin:8px 0">${h.length} paiements importés de ton ancien fichier, ${eur(sum(h, 'montant'))} encaissés${z.length ? ', sans URSSAF pour l\'instant' : ', URSSAF appliquée'}.</p>${z.length ? '<button class="btn" data-act="urssafHisto">Appliquer l\'URSSAF à l\'historique</button>' : ''}</section>` : ''; })()}
   ${prelBlock('eniram')}
   <section><div class="sec-head"><h2>Produits</h2><button class="btn sm" data-act="newProd">Nouveau produit</button></div>
   ${Object.keys(vie).length ? `<p class="muted small" style="margin-bottom:6px">Durée de vie moyenne : ${Object.entries(vie).map(([n, a]) => `${esc(n)} ${Math.round(a.reduce((t, x) => t + x, 0) / a.length)} j`).join(', ')}</p>` : ''}
@@ -727,7 +734,7 @@ function comptes() {
   const rows = comptes.map(c => ({c, all:soldeOf(c), mois:soldeOf(c, mr)}));
   const groups = [['Perso', rows.filter(x => x.c.type !== 'epargne' && x.c.univers === 'perso')], ['Pro', rows.filter(x => x.c.type !== 'epargne' && x.c.univers === 'pro')], ['Épargne', rows.filter(x => x.c.type === 'epargne')]];
   const tot = rs => rs.reduce((t, x) => t + x.all.solde, 0), total = tot(rows), urs = proTreso().reserve;
-  const orphan = paiements.filter(x => !x.compte_id).length + depenses.filter(x => !x.compte_id && x.categorie !== 'perso' ? true : !x.compte_id).length + revenus.filter(x => !x.compte_id && x.statut === 'recu').length;
+  const orphan = paiements.filter(x => !x.compte_id && !x.historique).length + depenses.filter(x => !x.compte_id && x.categorie !== 'perso' ? true : !x.compte_id).length + revenus.filter(x => !x.compte_id && x.statut === 'recu').length;
   const line = ({c, all, mois}) => `<button class="item" data-act="editCompte" data-id="${c.id}"><span class="i-main"><b>${esc(c.nom)}</b>
     <small>${COMPTE_TYPES[c.type]}, ce mois-ci +${eur(mois.inn)} −${eur(mois.out)}</small></span><span class="i-side num ${all.solde < 0 ? 'neg' : ''}">${eur(all.solde)}</span></button>`;
   return `<section><div class="sec-head"><h2>Comptes</h2><div style="display:flex;gap:8px"><button class="btn ghost sm" data-act="newTransfert">Transfert</button><button class="btn sm" data-act="newCompte">Ajouter</button></div></div>
@@ -805,6 +812,27 @@ function prodForm() {
       if (d.error) throw d.error;
     }
   });
+}
+
+function serviceForm(s) {
+  modal(s ? 'Modifier la prestation' : 'Nouvelle prestation proposée', `
+    ${f('Nom', `<input name="nom" required value="${esc(s ? s.nom : '')}">`)}
+    ${f('Prix (€)', `<input name="prix" type="number" step="0.01" min="0" required inputmode="decimal" value="${s ? s.prix : ''}">`)}
+  `, async fd => {
+    const row = {nom:fd.nom.trim(), prix:+fd.prix};
+    const r = s ? await sb.from('services').update(row).eq('id', s.id)
+      : await sb.from('services').insert({...row, ordre:(Math.max(0, ...S.data.services.map(x => x.ordre)) + 1)});
+    if (r.error) throw r.error;
+  });
+}
+async function appliquerUrssafHisto() {
+  const n = S.data.paiements.filter(p => p.historique && +p.taux_urssaf === 0).length;
+  const taux = +S.data.reg.taux_urssaf;
+  if (!n) return toast('Rien à appliquer');
+  if (!confirm(`Appliquer le taux URSSAF de ${taux} % aux ${n} paiements de l'historique ?`)) return;
+  const {error} = await sb.from('paiements').update({taux_urssaf:taux}).eq('historique', true).eq('taux_urssaf', 0);
+  if (error) return toast(error.message, true);
+  await refresh(); toast('URSSAF appliquée à l\'historique');
 }
 function pubForm() {
   modal('Nouvelle campagne', `
@@ -914,11 +942,14 @@ function prestaForm(nom = '', date = '', type = '') {
   const {clientes, produits} = S.data;
   const pads = produits.filter(p => p.categorie === 'pad' && !p.date_fin).map(p => [p.id, p.nom]);
   const tints = produits.filter(p => p.categorie === 'teinture' && !p.date_fin).map(p => [p.id, p.nom]);
+  const sv = (S.data.services || []).filter(x => x.actif), known = sv.find(x => x.nom.trim().toLowerCase() === String(type).trim().toLowerCase());
+  const autre = !sv.length || (type && !known);
   modal('Nouvelle prestation', `
     ${f('Cliente', `<input name="cliente" list="dl-cl" required autocomplete="off" value="${esc(nom)}" placeholder="Choisis ou écris un nouveau nom"><datalist id="dl-cl">${clientes.map(c => `<option value="${esc(c.nom)}">`).join('')}</datalist>`)}
     <div class="two">${f('Date et heure', `<input name="date_prestation" type="datetime-local" required value="${date || nowLocal()}">`)}
-    ${f('Montant total (€)', '<input name="montant_total" type="number" step="0.01" min="0" required inputmode="decimal">')}</div>
-    ${f('Prestation', `<input name="type_prestation" list="dl-ty" required value="${esc(type)}"><datalist id="dl-ty">${TYPES.map(t => `<option value="${t}">`).join('')}</datalist>`)}
+    ${f('Montant total (€)', `<input name="montant_total" type="number" step="0.01" min="0" required inputmode="decimal" value="${known ? known.prix : ''}">`)}</div>
+    ${sv.length ? f('Prestation', `<select name="service"><option value="">Choisir dans la liste</option>${sv.map(x => `<option value="${esc(x.nom)}" data-prix="${x.prix}" ${known && known.id === x.id ? 'selected' : ''}>${esc(x.nom)} · ${eur(x.prix)}</option>`).join('')}<option value="__autre" ${autre ? 'selected' : ''}>Autre (écrire le nom)</option></select>`) : ''}
+    <div id="autreWrap" style="display:${autre ? 'block' : 'none'}">${f(sv.length ? 'Nom de la prestation' : 'Prestation', `<input name="type_prestation" value="${esc(type && !known ? type : '')}">`)}</div>
     <h3 style="margin-top:22px">Encaissement</h3>
     <div class="two">${f('Montant encaissé (€)', '<input name="encaisse" type="number" step="0.01" min="0" inputmode="decimal">')}
     ${f('Type', `<select name="ptype">${opts([['solde', 'Solde'], ['acompte', 'Acompte']])}</select>`)}</div>
@@ -931,10 +962,12 @@ function prestaForm(nom = '', date = '', type = '') {
     ${f('Notes', '<textarea name="notes" placeholder="Retour de la cliente, ajustement pour la prochaine fois"></textarea>')}
   `, async fd => {
     const nomC = fd.cliente.trim();
+    const typeP = fd.service && fd.service !== '__autre' ? fd.service : (fd.type_prestation || '').trim();
+    if (!typeP) throw new Error('Choisis une prestation dans la liste');
     let c = S.data.clientes.find(x => x.nom.trim().toLowerCase() === nomC.toLowerCase());
     if (!c) { const r = await sb.from('clientes').insert({nom:nomC}).select().single(); if (r.error) throw r.error; c = r.data; }
     const r = await sb.from('prestations').insert({
-      cliente_id:c.id, date_prestation:new Date(fd.date_prestation).toISOString(), type_prestation:fd.type_prestation.trim(), montant_total:+fd.montant_total,
+      cliente_id:c.id, date_prestation:new Date(fd.date_prestation).toISOString(), type_prestation:typeP, montant_total:+fd.montant_total,
       pad_id:nz(fd.pad_id), pad_taille:nz(fd.pad_taille), pad_courbure:nz(fd.pad_courbure), teinture_id:nz(fd.teinture_id), notes:nz(fd.notes)
     }).select().single();
     if (r.error) throw r.error;
@@ -968,7 +1001,7 @@ function depForm(u) {
       ? `${f('Catégorie', `<select name="sous">${opts(persoCats().map(c => [c, c]))}</select>`)}${compteField(comptePerso())}
          <label class="check"><input type="checkbox" name="exceptionnelle"> Dépense exceptionnelle (hors budget vie)</label>`
       : `<div class="two">${f('Catégorie', `<select name="categorie">${optsObj(CATS_PRO)}</select>`)}
-         ${f('Moyen', `<select name="moyen"><option value="">Non précisé</option>${optsObj(MOYENS)}</select>`)}</div>${compteField(defaultCompte('cb'))}`}
+         ${f('Moyen', `<select name="moyen"><option value="">Non précisé</option>${optsObj(MOYENS_DEP)}</select>`)}</div>${compteField(defaultCompte('cb'))}`}
   `, async fd => {
     const row = perso
       ? {libelle:fd.libelle.trim(), montant:+fd.montant, date_depense:fd.date, categorie:'perso', sous_categorie:fd.sous, compte_id:nz(fd.compte_id), exceptionnelle:!!fd.exceptionnelle}
@@ -1153,6 +1186,10 @@ const ACTS = {
   recevoir(d) { recevoirForm(S.data.revenus.find(x => x.id === d.id)); },
   delChom(d) { del('revenus_perso', d.id, 'Supprimer ce revenu ?'); },
   newProd() { prodForm(); },
+  newService() { serviceForm(); },
+  editService(d) { serviceForm(S.data.services.find(x => x.id === d.id)); },
+  delService(d) { del('services', d.id, 'Supprimer cette prestation de la liste ?'); },
+  urssafHisto() { appliquerUrssafHisto(); },
   async finiProd(d) {
     const {error} = await sb.from('produits').update({date_fin:iso(new Date())}).eq('id', d.id);
     if (error) return toast(error.message, true);
@@ -1189,6 +1226,11 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if (t.name === 'service') {
+    const w = $('#autreWrap'); if (w) w.style.display = t.value === '__autre' ? 'block' : 'none';
+    const o = t.selectedOptions[0], m = t.form && t.form.querySelector('[name=montant_total]');
+    if (o && o.dataset.prix != null && m) m.value = o.dataset.prix;
+  }
   if (t.name === 'moyen' && t.value) { const c = t.form && t.form.querySelector('[name=compte_id]'); if (c) c.value = defaultCompte(t.value); }
 });
 document.addEventListener('submit', async e => {
