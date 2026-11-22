@@ -569,7 +569,7 @@ function clientes() {
 /* ---------- Vues Eniram ---------- */
 
 const relDay = d => { const t = iso(new Date()), x = iso(d); return x === t ? 'Aujourd\'hui' : x === addDays(t, 1) ? 'Demain' : jFR(d); };
-const rdvList = () => { const A = S.agenda; if (!A || A.error || !A.configured) return null; const now = Date.now(); return A.events.filter(e => !e.allDay && new Date(e.end).getTime() >= now); };
+const rdvList = () => { const A = S.agenda; if (!A || A.error || !A.configured) return null; const now = Date.now(); return A.events.filter(e => { if (e.allDay || new Date(e.end).getTime() < now) return false; const x = (S.ia || {})[e.title + '|' + e.start]; return !(x && x.prestation === false); }); };
 function rdvRow(e) {
   const i = rdvInfo(e), d = i.d, total = i.pr ? +i.pr.montant_total : 0;
   const svc = i.ia && i.ia.service ? i.ia.service : '', px = i.ia && i.ia.prix != null ? i.ia.prix : null;
