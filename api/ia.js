@@ -22,6 +22,7 @@ module.exports = async (req, res) => {
     const prompt = `Tu aides une praticienne de rehaussement de cils et de sourcils (Eniram Beauty) à lire son agenda.
 Pour chaque rendez-vous, déduis du titre et de la description :
 - "cliente" : le nom de la cliente. Choisis le nom de la liste des clientes connues qui correspond le mieux (tolère fautes de frappe, prénom seul, pseudo Instagram). Si aucune ne correspond, écris le nom tel qu'il apparaît et mets "clienteConnue" à false.
+- "prestation" : true si c'est un rendez-vous avec une cliente pour une prestation cils/sourcils ; false pour tout le reste (cours, repas, mosquée, rendez-vous perso, etc.).
 - "service" : EXACTEMENT un nom de la liste des prestations proposées si l'une correspond clairement, sinon une chaîne vide.
 - "prix" : le prix écrit dans le rendez-vous si présent, sinon le prix de la prestation de la liste, sinon null.
 - "acompte" : le montant d'acompte déjà versé s'il est mentionné, sinon null.
@@ -37,7 +38,7 @@ Rendez-vous : ${JSON.stringify(events)}`;
         temperature: 0, responseMimeType: 'application/json',
         responseSchema: {type: 'ARRAY', items: {type: 'OBJECT', properties: {
           id: {type: 'STRING'}, cliente: {type: 'STRING'}, clienteConnue: {type: 'BOOLEAN'}, service: {type: 'STRING'},
-          prix: {type: 'NUMBER', nullable: true}, acompte: {type: 'NUMBER', nullable: true}}, required: ['id', 'cliente', 'clienteConnue', 'service']}}
+          prix: {type: 'NUMBER', nullable: true}, acompte: {type: 'NUMBER', nullable: true}, prestation: {type: 'BOOLEAN'}}, required: ['id', 'cliente', 'clienteConnue', 'service', 'prestation']}}
       }
     });
     let r = null;
@@ -53,7 +54,7 @@ Rendez-vous : ${JSON.stringify(events)}`;
     const ids = new Set(events.map(e => e.id));
     const results = (Array.isArray(out) ? out : []).filter(x => x && ids.has(x.id)).map(x => ({
       id: x.id, cliente: cut(x.cliente, 80), clienteConnue: !!x.clienteConnue, service: cut(x.service, 80),
-      prix: typeof x.prix === 'number' ? x.prix : null, acompte: typeof x.acompte === 'number' ? x.acompte : null}));
+      prix: typeof x.prix === 'number' ? x.prix : null, acompte: typeof x.acompte === 'number' ? x.acompte : null, prestation: x.prestation !== false}));
     res.status(200).json({configured: true, results});
   } catch (e) { res.status(500).json({error: 'Analyse IA impossible'}); }
 };
