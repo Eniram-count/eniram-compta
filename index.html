@@ -227,6 +227,14 @@ nav .fab .fabl{display:none}
 .btn.sm{white-space:nowrap}
 .monthnav span{font-family:var(--sans);font-style:normal;font-weight:600;text-transform:capitalize}
 .rdvw{display:flex;align-items:center;gap:6px;margin-bottom:8px}.rdvw .rdv{margin-bottom:0}.ign{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--ligne);background:#fff;color:#8a7a80;font-size:15px;cursor:pointer}.ghostw{display:block;width:100%;min-height:44px;margin-top:6px;background:transparent;border:0;color:#fff;opacity:.9;font-size:13px;text-decoration:underline;cursor:pointer}
+:root{--rose-fonce:#B01E55;--rose-doux:#FDEFF4;--rose:#E8789D;--creme2:#F3F1F2;--champ:#F7F5F6;--brun:#1B1B1F;--brun-doux:#5F5F6B;--ligne:#ECE8EA;--ok:#0B5A38;--alerte:#B01E55;--btn-h:#B01E55}
+body[data-p="perso"]{--rose-fonce:#0F7A4F;--rose-doux:#E6F6EE;--rose:#7CC4A0;--creme2:#F1F4F2;--champ:#F5F8F6;--brun:#16241D;--brun-doux:#4F6258;--ligne:#E3EAE6;--ok:#0B5A38;--btn-h:#0F7A4F}
+.pill.green{background:#E6F6EE;color:#0B5A38}.pill.amber{background:#FFF4DB;color:#6B4700}
+.bub.amber{background:#FFF4DB}.bub.green{background:#E6F6EE}.bub.green small{color:#0B5A38}.bub.green .v{color:#083F28}
+.hero2{box-shadow:0 10px 24px rgba(176,30,85,.25)}body[data-p="perso"] .hero2{box-shadow:0 10px 24px rgba(15,122,79,.25)}
+.alert{background:var(--rose-doux);border-left-color:var(--rose-fonce);color:var(--brun)}
+.item,.rdv{border-color:var(--ligne)}
+nav .fab{box-shadow:0 6px 16px rgba(176,30,85,.4)}body[data-p="perso"] nav .fab{box-shadow:0 6px 16px rgba(15,122,79,.4)}
 </style>
 </head>
 <body>
@@ -505,8 +513,8 @@ async function loadAgenda() {
 async function loadIA() {
   try {
     const A = S.agenda; if (!A || !A.configured || S.iaOff) return;
-    S.ia ??= JSON.parse(lsGet('eb_ia') || '{}');
-    const now = Date.now(), evs = A.events.filter(e => !e.allDay && new Date(e.end).getTime() >= now).slice(0, 20);
+    S.ia ??= JSON.parse(lsGet('eb_ia2') || '{}');
+    const now = Date.now(), evs = A.events.filter(e => !e.allDay && new Date(e.end).getTime() >= now - 7 * 864e5).slice(0, 28);
     const todo = evs.filter(e => !S.ia[e.title + '|' + e.start]);
     if (!todo.length) return;
     const {data} = await sb.auth.getSession(); const tok = data && data.session && data.session.access_token; if (!tok) return;
@@ -516,7 +524,7 @@ async function loadIA() {
     if (!r.ok) { S.iaErr = j.error || 'IA indisponible'; return; }
     if (!j.configured) { S.iaOff = true; return; }
     j.results.forEach(x => { S.ia[x.id] = x; });
-    const keep = Object.fromEntries(Object.entries(S.ia).slice(-120)); S.ia = keep; lsSet('eb_ia', JSON.stringify(keep));
+    const keep = Object.fromEntries(Object.entries(S.ia).slice(-120)); S.ia = keep; lsSet('eb_ia2', JSON.stringify(keep));
     if (S.profile === 'eniram' && ['accueil', 'prestations'].includes(S.tab)) render();
   } catch (e) { S.iaErr = 'IA indisponible'; }
 }
@@ -544,7 +552,7 @@ function prestations() {
   const A = S.agenda, evs = rdvList();
   const plan = evs ? (evs.length ? evs.slice(0, 15).map(rdvRow).join('') : '<p class="empty">Aucun rendez-vous dans les 45 prochains jours.</p>')
     : `<p class="empty">${A && A.error ? esc(A.error) : 'Agenda non connecté. Colle le lien privé Google Agenda dans Plus, puis Réglages.'}</p>`;
-  return `<section><div class="sec-head"><h2>Planning</h2></div>${plan}${JSON.parse(lsGet('eb_ign') || '[]').length ? '<button class="btn ghost" data-act="showIgn">Réafficher les rendez-vous masqués</button>' : ''}</section>
+  return `<section><div class="sec-head"><h2>Planning</h2></div>${doneHtml()}${plan}${JSON.parse(lsGet('eb_ign') || '[]').length ? '<button class="btn ghost" data-act="showIgn">Réafficher les rendez-vous masqués</button>' : ''}</section>
   <section><div class="sec-head"><h2>Passées</h2><button class="btn sm" data-act="newPresta">Nouvelle prestation</button></div>
   ${prestas.length ? shown.map(p => {
     const rest = +p.montant_total - paid(p);
@@ -570,7 +578,11 @@ function clientes() {
 /* ---------- Vues Eniram ---------- */
 
 const relDay = d => { const t = iso(new Date()), x = iso(d); return x === t ? 'Aujourd\'hui' : x === addDays(t, 1) ? 'Demain' : jFR(d); };
-const rdvList = () => { const A = S.agenda; if (!A || A.error || !A.configured) return null; const now = Date.now(); return A.events.filter(e => { if (e.allDay || new Date(e.end).getTime() < now) return false; const x = (S.ia || {})[e.title + '|' + e.start]; return !(x && x.prestation === false) && !JSON.parse(lsGet('eb_ign') || '[]').includes(e.title + '|' + e.start); }); };
+const PRESTA_RE = /lash|cils|sourcil|brow|teinture|botox|baddie|that girl|clean girl|combo|restructur|formation|korean|mod[eè]le/i;
+const rdvOk = e => { if (e.allDay) return false; if (JSON.parse(lsGet('eb_ign') || '[]').includes(e.title + '|' + e.start)) return false; const x = (S.ia || {})[e.title + '|' + e.start]; return !(x && x.prestation === false && !PRESTA_RE.test(e.title + ' ' + (e.desc || ''))); };
+const rdvList = () => { const A = S.agenda; if (!A || A.error || !A.configured) return null; const now = Date.now(); return A.events.filter(e => new Date(e.end).getTime() >= now && rdvOk(e)); };
+const rdvDone = () => { const A = S.agenda; if (!A || A.error || !A.configured) return []; const now = Date.now(); return A.events.filter(e => new Date(e.end).getTime() < now && new Date(e.start).getTime() > now - 7 * 864e5 && rdvOk(e) && !rdvInfo(e).pr).reverse(); };
+const doneHtml = () => { const ev = rdvDone(); return ev.length ? `<section><div class="sec-head"><h2>À enregistrer</h2></div>${ev.slice(0, 5).map(rdvRow).join('')}</section>` : ''; };
 function rdvRow(e) {
   const i = rdvInfo(e), d = i.d, total = i.pr ? +i.pr.montant_total : 0;
   const svc = i.ia && i.ia.service ? i.ia.service : '', px = i.ia && i.ia.prix != null ? i.ia.prix : null;
@@ -586,7 +598,7 @@ function nextHero() {
     <button class="btn" data-act="tab" data-k="plus" style="background:var(--rose-fonce);color:#fff">Connecter l'agenda</button></section>`;
   if (!evs.length) return `<section class="hero2 soft"><div class="eyebrow">Prochaine prestation</div><p>Aucun rendez-vous dans les 45 prochains jours.</p><button class="btn" data-act="newPresta" style="background:var(--rose-fonce);color:#fff">Ajouter une prestation</button></section>`;
   const e = evs[0], n = rdvInfo(e), total = n.pr ? +n.pr.montant_total : 0, reste = Math.max(0, total - n.paye);
-  return `<section class="hero2"><div class="eyebrow"><span>Prochaine prestation</span><span class="when">${relDay(n.d)}, ${hFR(n.d)}</span></div>
+  return `<section class="hero2"><div class="eyebrow"><span>Prochaine prestation</span><span class="when">${n.d.getTime() <= Date.now() ? 'En cours, ' + hFR(n.d) : relDay(n.d) + ', ' + hFR(n.d)}</span></div>
     <div><div class="who">${esc(n.c ? n.c.nom : (n.ia && n.ia.cliente ? n.ia.cliente : e.title))}</div><div class="what">${n.pr ? esc(n.pr.type_prestation) : (n.ia && n.ia.service ? esc(n.ia.service) + (n.ia.prix != null ? ' · ' + eur(n.ia.prix) : '') : (n.c && e.title ? esc(e.title) : 'Prestation à enregistrer'))}</div></div>
     ${n.pr ? `<div class="tiles"><div class="tile"><small>Prix</small><b class="num">${eur(total)}</b></div><div class="tile"><small>Acompte reçu</small><b class="num">${eur(n.acompte)}</b></div><div class="tile w"><small>Reste à payer</small><b class="num">${eur(reste)}</b></div></div>`
       : `<button class="btn" data-act="newPresta" data-nom="${esc(n.c ? n.c.nom : (n.ia ? n.ia.cliente : ''))}" data-type="${esc(n.ia ? n.ia.service : '')}" data-date="${iso(n.d)}T${z2(n.d.getHours())}:${z2(n.d.getMinutes())}">Enregistrer la prestation</button><button class="ghostw" data-act="ignRdv" data-key="${esc(e.title + '|' + e.start)}">Ce n'est pas une prestation</button>`}</section>`;
@@ -620,7 +632,7 @@ function eniHome() {
     <div class="bub amber"><small>À mettre de côté (URSSAF)</small><div class="v num">${eur(m.urs)}</div></div>
     <div class="bub green"><small>Ton salaire ${vs}</small><div class="v num">${eur(m.salaireRef)}</div></div></div>${partialNote()}</section>`;
   return `<div class="hello"><p class="muted small">${new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})}</p><h1>Bonjour ${esc(lsGet('eb_prenom') || 'Marine')}</h1></div>
-  ${alertsHtml(alerts('eniram'))}${nextHero()}${bubbles}${upcomingHtml(true, 4)}${soldHtml}
+  ${alertsHtml(alerts('eniram'))}${doneHtml()}${nextHero()}${bubbles}${upcomingHtml(true, 4)}${soldHtml}
   <details class="more"><summary>Voir tout le détail du mois</summary>
   <section><div class="sec-head"><h2>Répartition du mois</h2></div>
     <div class="row"><span>Chiffre d'affaires encaissé</span><span class="num">${eur(m.enc)}</span></div>
