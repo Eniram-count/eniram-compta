@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#FAF1EE">
+<meta name="theme-color" content="#FFFFFF">
 <title>Eniram Beauty, compta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,6 +166,66 @@ details.tv summary{cursor:pointer;padding:4px 0}
 .alert.neg{border-left-color:var(--alerte)}
 .item.wrap{flex-wrap:wrap}
 
+
+/* ===== v4 : interface claire, fond blanc ===== */
+:root{--creme:#fff; --creme2:#F4EFF0; --champ:#FAF6F7; --brun:#2B1F22; --brun-doux:#6B5A5E; --ligne:#EEE6E8}
+body[data-p="perso"]{--creme:#fff; --creme2:#F0F2EE; --champ:#F7F9F6; --brun:#1F2B24; --brun-doux:#566559; --ligne:#E6EAE4}
+body{background:#fff;font-size:16px}
+h1,h2,h3{font-family:var(--sans)}
+h1{font-weight:700;font-size:1.75rem;letter-spacing:-.02em}
+h2{font-style:normal;font-weight:700;font-size:1.2rem;letter-spacing:-.01em}
+h3{font-weight:600;font-size:1rem}
+.top{background:#fff}
+main>section{margin-top:26px}
+.hello{margin-bottom:14px}.hello h1{margin:0}
+.btn:not(.ghost){background:var(--rose-fonce);color:#fff;border-radius:16px;min-height:48px;font-weight:600;border-color:transparent}
+.btn:not(.ghost):hover{background:var(--rose-fonce);filter:brightness(.93)}
+.item{min-height:56px}
+.hero2{background:var(--rose-fonce);color:#fff;border-radius:26px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.hero2.soft{background:var(--champ);color:var(--brun);border:1px solid var(--ligne)}
+.hero2 .eyebrow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.88rem;font-weight:600}
+.hero2 .when{background:rgba(255,255,255,.22);border-radius:999px;padding:4px 11px;font-size:.8rem}
+.hero2 .who{font-size:1.7rem;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.hero2 .what{font-size:1rem;opacity:.95}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{background:rgba(255,255,255,.18);border-radius:16px;padding:10px 12px;min-width:0}
+.tile small{display:block;font-size:.76rem;opacity:.92}
+.tile b{font-size:1.1rem;font-weight:700}
+.tile.w{background:#fff;color:var(--brun)}.tile.w small{color:var(--brun-doux);opacity:1}.tile.w b{color:var(--rose-fonce)}
+.hero2 .btn{background:#fff;color:var(--rose-fonce)}
+.pill{font-size:.78rem;font-weight:600;border-radius:999px;padding:5px 10px;white-space:nowrap}
+.pill.green{background:#E6F2EA;color:#1F5A38}.pill.amber{background:#FFF2D6;color:#6B4700}.pill.grey{background:var(--creme2);color:var(--brun)}
+.bubbles{display:grid;grid-template-columns:1.25fr 1fr;gap:10px}
+.bub{border-radius:22px;padding:14px 16px;background:var(--champ);min-width:0}
+.bub.big{grid-row:span 2;display:flex;flex-direction:column;justify-content:center}
+.bub small{display:block;font-size:.8rem;color:var(--brun-doux)}
+.bub .v{font-size:1.55rem;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.bub.amber{background:#FFF2D6}.bub.amber small{color:#6B4700}.bub.amber .v{color:#4A3200;font-size:1.2rem}
+.bub.green{background:#E6F2EA}.bub.green small{color:#1F5A38}.bub.green .v{color:#173F29;font-size:1.2rem}
+.rdv{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:1px solid var(--ligne);border-radius:18px;padding:12px 14px;margin-bottom:8px;cursor:pointer;min-height:60px}
+.rdv .i-main{flex:1}
+.dbox{width:42px;text-align:center;line-height:1.1;flex:none}
+.dbox small{display:block;font-size:.7rem;text-transform:uppercase;color:var(--brun-doux)}
+.dbox b{font-size:1.25rem}
+details.more>summary{list-style:none;cursor:pointer;min-height:50px;display:flex;align-items:center;justify-content:center;border:1px solid var(--ligne);border-radius:16px;font-weight:600;color:var(--rose-fonce)}
+details.more>summary::-webkit-details-marker{display:none}
+details.more[open]>summary{margin-bottom:6px}
+.chev2{color:var(--brun-doux);font-size:1.5rem}
+nav{background:#fff;border-top:1px solid var(--ligne);padding:6px 4px calc(8px + env(safe-area-inset-bottom,0px));align-items:flex-end}
+nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;font-size:.72rem;font-weight:500;background:none;color:var(--brun-doux);padding:6px 2px;font-family:var(--sans)}
+nav button.on{color:var(--rose-fonce);background:none;font-family:var(--sans);font-style:normal;font-size:.72rem;font-weight:700}
+nav button svg{width:24px;height:24px}
+nav .fab{flex:none;width:58px;height:58px;min-height:0;border-radius:50%;background:var(--rose-fonce);color:#fff;margin:-26px 6px 0;box-shadow:0 6px 16px rgba(0,0,0,.22);padding:0}
+nav .fab .fabl{display:none}
+@media(min-width:720px){
+  nav svg{display:none}
+  nav button{flex-direction:row;min-height:0;font-size:.95rem;padding:8px 14px;border-radius:12px}
+  nav button.on{font-size:.95rem;background:var(--rose-doux)}
+  nav .fab{width:auto;height:auto;border-radius:999px;margin:0 6px;padding:9px 18px;box-shadow:none}
+  nav .fab .fabl{display:inline;font-size:.95rem;font-weight:600}
+}
+.btn.sm{white-space:nowrap}
+.monthnav span{font-family:var(--sans);font-style:normal;font-weight:600;text-transform:capitalize}
 </style>
 </head>
 <body>
@@ -196,6 +256,16 @@ const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
 const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
 const inR = (d, [a, b]) => d >= a && d <= b;
 
+const svgI = p => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const ICON = {
+  home:svgI('<path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>'),
+  cal:svgI('<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/>'),
+  users:svgI('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>'),
+  list:svgI('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
+  wallet:svgI('<path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14.5" r="1"/>'),
+  more:svgI('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>'),
+  plus:svgI('<path d="M12 5v14M5 12h14"/>')
+};
 const MOYENS_DEP = {especes:'Espèces', cb:'Carte', revolut:'Revolut', virement:'Virement', autre:'Autre'};
 const MOYENS = {...MOYENS_DEP, wero:'Wero', paypal:'PayPal', lydia:'Lydia'};
 const CATS = {fournitures:'Fournitures', investissement:'Investissement', pub:'Pub', charge_variable:'Charge variable', perso:'Perso', autre:'Autre'};
@@ -230,8 +300,8 @@ const PROFILES = {
   perso:{nom:'perso', mono:'P', bg:'#A9C0A8', fg:'#26332B', theme:'#F4F2EA', word:['PERSO', 'MES COMPTES'], sous:'L\'argent perso'}
 };
 const NAV = {
-  eniram:[['accueil', 'Accueil'], ['prestations', 'Prestations'], ['clientes', 'Clientes'], ['depenses', 'Dépenses'], ['plus', 'Réglages']],
-  perso:[['accueil', 'Accueil'], ['mouvements', 'Mouvements'], ['comptes', 'Comptes'], ['epargne', 'Épargne'], ['plus', 'Réglages']]
+  eniram:[['accueil', 'Accueil', 'home'], ['prestations', 'Planning', 'cal'], ['+'], ['clientes', 'Clientes', 'users'], ['plus', 'Plus', 'more']],
+  perso:[['accueil', 'Accueil', 'home'], ['mouvements', 'Mouvements', 'list'], ['+'], ['comptes', 'Comptes', 'wallet'], ['plus', 'Plus', 'more']]
 };
 
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -450,13 +520,17 @@ const opts = (pairs, sel) => pairs.map(([v, l]) => `<option value="${esc(v)}" ${
 const optsObj = (o, sel) => opts(Object.entries(o), sel);
 
 function prestations() {
-  const {prestas} = S.data;
-  return `<section><div class="sec-head"><h2>Prestations</h2><button class="btn sm" data-act="newPresta">Nouvelle prestation</button></div>
-  ${prestas.length ? prestas.map(p => {
+  const {prestas} = S.data, shown = S.allPrestas ? prestas : prestas.slice(0, 30);
+  const A = S.agenda, evs = rdvList();
+  const plan = evs ? (evs.length ? evs.slice(0, 15).map(rdvRow).join('') : '<p class="empty">Aucun rendez-vous dans les 45 prochains jours.</p>')
+    : `<p class="empty">${A && A.error ? esc(A.error) : 'Agenda non connecté. Colle le lien privé Google Agenda dans Plus, puis Réglages.'}</p>`;
+  return `<section><div class="sec-head"><h2>Planning</h2></div>${plan}</section>
+  <section><div class="sec-head"><h2>Passées</h2><button class="btn sm" data-act="newPresta">Nouvelle prestation</button></div>
+  ${prestas.length ? shown.map(p => {
     const rest = +p.montant_total - paid(p);
     return `<button class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(S.cmap[p.cliente_id]?.nom)}</b><small>${esc(p.type_prestation)}, ${dFR(p.date_prestation)}</small></span>
       <span class="i-side num">${eur(p.montant_total)}<small class="${rest > 0.009 ? 'warn' : 'ok'}">${rest > 0.009 ? 'Reste ' + eur(rest) : 'Payé'}</small></span></button>`;
-  }).join('') : '<p class="empty">Aucune prestation pour le moment. Ajoute la première avec le bouton ci-dessus.</p>'}</section>`;
+  }).join('') + (prestas.length > 30 && !S.allPrestas ? `<div style="margin-top:14px"><button class="btn ghost" data-act="allPrestas">Afficher les ${prestas.length - 30} plus anciennes</button></div>` : '') : '<p class="empty">Aucune prestation pour le moment. Ajoute la première avec le bouton ci-dessus.</p>'}</section>`;
 }
 
 function clienteList() {
@@ -474,6 +548,30 @@ function clientes() {
 }
 
 /* ---------- Vues Eniram ---------- */
+
+const relDay = d => { const t = iso(new Date()), x = iso(d); return x === t ? 'Aujourd\'hui' : x === addDays(t, 1) ? 'Demain' : jFR(d); };
+const rdvList = () => { const A = S.agenda; if (!A || A.error || !A.configured) return null; const now = Date.now(); return A.events.filter(e => !e.allDay && new Date(e.end).getTime() >= now); };
+function rdvRow(e) {
+  const i = rdvInfo(e), d = i.d, total = i.pr ? +i.pr.montant_total : 0;
+  const pill = !i.pr ? '<span class="pill amber">À enregistrer</span>' : i.acompte > 0 ? `<span class="pill green">Acompte ${eur(i.acompte)}</span>` : '<span class="pill amber">Sans acompte</span>';
+  const act = i.pr ? `data-act="openPresta" data-id="${i.pr.id}"` : `data-act="newPresta" data-nom="${esc(i.c ? i.c.nom : '')}" data-date="${iso(d)}T${z2(d.getHours())}:${z2(d.getMinutes())}"`;
+  return `<button class="rdv" ${act}><span class="dbox"><small>${d.toLocaleDateString('fr-FR', {weekday:'short'}).replace('.', '')}</small><b>${d.getDate()}</b></span>
+    <span class="i-main"><b>${esc(i.c ? i.c.nom : e.title)}</b><small>${hFR(d)}${i.pr ? ', ' + esc(i.pr.type_prestation) + ' · ' + eur(total) : (i.c ? ', ' + esc(e.title) : '')}</small></span>${pill}</button>`;
+}
+function nextHero() {
+  const A = S.agenda; if (!A) return '';
+  const evs = rdvList();
+  if (!evs) return `<section class="hero2 soft"><div class="eyebrow">Prochaine prestation</div><p>${A.error ? esc(A.error) : 'Connecte ton Google Agenda pour voir ta prochaine cliente ici, avec l\'acompte déjà versé.'}</p>
+    <button class="btn" data-act="tab" data-k="plus" style="background:var(--rose-fonce);color:#fff">Connecter l'agenda</button></section>`;
+  if (!evs.length) return `<section class="hero2 soft"><div class="eyebrow">Prochaine prestation</div><p>Aucun rendez-vous dans les 45 prochains jours.</p><button class="btn" data-act="newPresta" style="background:var(--rose-fonce);color:#fff">Ajouter une prestation</button></section>`;
+  const e = evs[0], n = rdvInfo(e), total = n.pr ? +n.pr.montant_total : 0, reste = Math.max(0, total - n.paye);
+  return `<section class="hero2"><div class="eyebrow"><span>Prochaine prestation</span><span class="when">${relDay(n.d)}, ${hFR(n.d)}</span></div>
+    <div><div class="who">${esc(n.c ? n.c.nom : e.title)}</div><div class="what">${n.pr ? esc(n.pr.type_prestation) : (n.c && e.title ? esc(e.title) : 'Prestation à enregistrer')}</div></div>
+    ${n.pr ? `<div class="tiles"><div class="tile"><small>Prix</small><b class="num">${eur(total)}</b></div><div class="tile"><small>Acompte reçu</small><b class="num">${eur(n.acompte)}</b></div><div class="tile w"><small>Reste à payer</small><b class="num">${eur(reste)}</b></div></div>`
+      : `<button class="btn" data-act="newPresta" data-nom="${esc(n.c ? n.c.nom : '')}" data-date="${iso(n.d)}T${z2(n.d.getHours())}:${z2(n.d.getMinutes())}">Enregistrer la prestation</button>`}</section>`;
+}
+const upcomingHtml = (skipFirst, max) => { const evs = rdvList(); if (!evs || evs.length <= (skipFirst ? 1 : 0)) return ''; return `<section><div class="sec-head"><h2>À venir</h2></div>${evs.slice(skipFirst ? 1 : 0, (skipFirst ? 1 : 0) + max).map(rdvRow).join('')}</section>`; };
+
 function eniHome() {
   const {reg, prestas, paiements} = S.data, y = new Date().getFullYear();
   const m = eniMonth(S.monthOffset), pv = eniMonth(S.monthOffset - 1), tr = proTreso();
@@ -493,9 +591,16 @@ function eniHome() {
   const avg3 = moy(o => eniMonth(o).enc, 3);
   const vs = m.verse > 0 ? 'versé' : 'proposé';
 
-  return `${monthNav()}${alertsHtml(alerts('eniram'))}${agendaBlock()}
-  <section class="hero"><p class="lead">Encaissé en ${monthName(m.r)}</p><p class="big num">${eur(m.enc)}</p>${delta(m.enc, pv.enc)}
-    <p class="sub num">dont ${eur(m.urs)} à mettre de côté pour l'URSSAF</p>${partialNote()}</section>
+  const soldHtml = sold.length ? `<section><div class="sec-head"><h2>Soldes à encaisser</h2></div>
+    ${sold.map(p => `<button class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(S.cmap[p.cliente_id]?.nom)}</b><small>${esc(p.type_prestation)}, ${dFR(p.date_prestation)}</small></span>
+      <span class="i-side num warn">${eur(+p.montant_total - paid(p))}</span></button>`).join('')}</section>` : '';
+  const bubbles = `<section>${monthNav()}<div class="bubbles">
+    <div class="bub big"><small>Encaissé en ${monthName(m.r)}</small><div class="v num">${eur(m.enc)}</div>${delta(m.enc, pv.enc)}</div>
+    <div class="bub amber"><small>À mettre de côté (URSSAF)</small><div class="v num">${eur(m.urs)}</div></div>
+    <div class="bub green"><small>Ton salaire ${vs}</small><div class="v num">${eur(m.salaireRef)}</div></div></div>${partialNote()}</section>`;
+  return `<div class="hello"><p class="muted small">${new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})}</p><h1>Bonjour</h1></div>
+  ${alertsHtml(alerts('eniram'))}${nextHero()}${bubbles}${upcomingHtml(true, 4)}${soldHtml}
+  <details class="more"><summary>Voir tout le détail du mois</summary>
   <section><div class="sec-head"><h2>Répartition du mois</h2></div>
     <div class="row"><span>Chiffre d'affaires encaissé</span><span class="num">${eur(m.enc)}</span></div>
     <div class="row"><span>URSSAF à ${reg.taux_urssaf} %</span><span class="num">−${eur(m.urs)}</span></div>
@@ -533,12 +638,10 @@ function eniHome() {
     <div class="row"><span>dont nouvelles</span><span class="num">${ids.length - retour}</span></div>
     ${top.length ? `<h3 style="margin-top:20px">Tes meilleures clientes</h3>${hbars(top)}` : ''}</section>
   ${byMoyen.length ? `<section><div class="sec-head"><h2>Comment elles paient</h2></div>${hbars(byMoyen)}</section>` : ''}
-  ${sold.length ? `<section><div class="sec-head"><h2>Soldes à encaisser</h2></div>
-    ${sold.map(p => `<button class="item" data-act="openPresta" data-id="${p.id}"><span class="i-main"><b>${esc(S.cmap[p.cliente_id]?.nom)}</b><small>${esc(p.type_prestation)}, ${dFR(p.date_prestation)}</small></span>
-      <span class="i-side num warn">${eur(+p.montant_total - paid(p))}</span></button>`).join('')}</section>` : ''}
   ${plaf > 0 ? `<section><div class="sec-head"><h2>Plafond ${y}</h2><span class="num muted">${eur(caY)} sur ${eur(plaf)}</span></div>
     <div class="bar slim" role="img" aria-label="${Math.round(pp)} % du plafond atteint"><i style="width:${pp}%"></i></div>
-    <p class="small ${pp >= 85 ? 'warn' : 'muted'}">${pp >= 85 ? 'Tu approches du plafond de chiffre d\'affaires.' : `Il reste ${eur(plaf - caY)} avant le plafond.`}</p></section>` : ''}`;
+    <p class="small ${pp >= 85 ? 'warn' : 'muted'}">${pp >= 85 ? 'Tu approches du plafond de chiffre d\'affaires.' : `Il reste ${eur(plaf - caY)} avant le plafond.`}</p></section>` : ''}
+  </details>`;
 }
 
 function depenses() {
@@ -577,7 +680,10 @@ function eniPlus() {
   const actifs = produits.filter(p => !p.date_fin), finis = produits.filter(p => p.date_fin && p.date_achat);
   const vie = {}; finis.forEach(p => { (vie[p.nom] ??= []).push(dayDiff(p.date_achat, p.date_fin)); });
   const caSur = (a, b) => sum(paiements.filter(x => inR(x.date_paiement, [a, b])), 'montant');
-  return `<section><h2>Réglages Eniram</h2>
+  return `<section><h2>Plus</h2>
+  <button class="item" data-act="tab" data-k="depenses"><span class="i-main"><b>Dépenses</b><small>Fournitures, pub, charges fixes</small></span><span class="chev2" aria-hidden="true">›</span></button>
+  <button class="item" data-act="goComptes"><span class="i-main"><b>Comptes</b><small>Perso, pro, épargne, espèces</small></span><span class="chev2" aria-hidden="true">›</span></button></section>
+  <section><h2>Réglages Eniram</h2>
   <form id="regf" style="margin-top:14px">
     <div class="two">${f('Taux URSSAF (%)', `<input name="taux" type="number" step="0.01" min="0" max="100" required value="${reg.taux_urssaf}">`)}
     ${f('Part salaire perso (%)', `<input name="part" type="number" step="0.01" min="0" max="100" required value="${reg.part_salaire}">`)}</div>
@@ -714,7 +820,9 @@ function epargne() {
 
 function persoPlus() {
   const m = persoMonth(S.monthOffset), cats = S.data.categories;
-  return `<section><h2>Budget vie</h2>
+  return `<section><h2>Plus</h2>
+  <button class="item" data-act="tab" data-k="epargne"><span class="i-main"><b>Épargne</b><small>Sécurité, pot vacances, objectifs</small></span><span class="chev2" aria-hidden="true">›</span></button></section>
+  <section><h2>Budget vie</h2>
   <p class="muted small" style="margin-top:6px">Chaque mois a son propre budget. Les montants des autres mois ne changent pas.</p>
   ${monthNav()}
   <form id="regb">
@@ -907,6 +1015,7 @@ const VIEWS = {
   eniram:{accueil:eniHome, prestations, clientes, depenses, plus:eniPlus, comptes},
   perso:{accueil:persoHome, mouvements, comptes, epargne, plus:persoPlus}
 };
+const navOn = k => k === 'plus' ? (S.profile === 'eniram' ? ['plus', 'depenses', 'comptes'] : ['plus', 'epargne']).includes(S.tab) : S.tab === k;
 function render() {
   const P = PROFILES[S.profile], other = S.profile === 'eniram' ? 'perso' : 'eniram', O = PROFILES[other];
   document.body.dataset.p = S.profile;
@@ -914,7 +1023,9 @@ function render() {
   const view = VIEWS[S.profile][S.tab] || VIEWS[S.profile].accueil;
   app.innerHTML = `<header class="top"><button class="pbtn" data-act="sheet" aria-label="Changer de profil"><span class="mono" aria-hidden="true">${P.mono}</span>
     <span class="word"><span>${P.word[0]}</span><small>${P.word[1]}</small></span><i class="chev" aria-hidden="true">▾</i></button>
-    <nav aria-label="Navigation">${NAV[S.profile].map(([k, l]) => `<button data-act="tab" data-k="${k}" class="${S.tab === k ? 'on' : ''}" ${S.tab === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
+    <nav aria-label="Navigation">${NAV[S.profile].map(([k, l, ic]) => k === '+'
+      ? `<button class="fab" data-act="${S.profile === 'eniram' ? 'newPresta' : 'newDep'}" data-u="perso" aria-label="${S.profile === 'eniram' ? 'Ajouter une prestation' : 'Ajouter une dépense'}">${ICON.plus}<span class="fabl">Ajouter</span></button>`
+      : `<button data-act="tab" data-k="${k}" class="${navOn(k) ? 'on' : ''}" ${navOn(k) ? 'aria-current="page"' : ''}>${ICON[ic]}<span>${l}</span></button>`).join('')}</nav>
     <button class="alt" data-act="switch" data-k="${other}" aria-label="Passer au profil ${O.nom}" style="background:${O.bg};color:${O.fg}">${O.mono}</button></header>
     <main>${view()}</main>`;
 }
@@ -1186,6 +1297,7 @@ const ACTS = {
   recevoir(d) { recevoirForm(S.data.revenus.find(x => x.id === d.id)); },
   delChom(d) { del('revenus_perso', d.id, 'Supprimer ce revenu ?'); },
   newProd() { prodForm(); },
+  allPrestas() { S.allPrestas = true; render(); },
   newService() { serviceForm(); },
   editService(d) { serviceForm(S.data.services.find(x => x.id === d.id)); },
   delService(d) { del('services', d.id, 'Supprimer cette prestation de la liste ?'); },
