@@ -513,7 +513,7 @@ async function loadAgenda() {
 async function loadIA() {
   try {
     const A = S.agenda; if (!A || !A.configured || S.iaOff) return;
-    const fresh = !S.ia; S.ia ??= JSON.parse(lsGet('eb_ia2') || '{}');
+    const fresh = !S.ia; S.ia ??= JSON.parse(lsGet('eb_ia3') || '{}');
     const now = Date.now(), evs = A.events.filter(e => !e.allDay && new Date(e.end).getTime() >= now - 7 * 864e5).slice(0, 28);
     const todo = evs.filter(e => !S.ia[e.title + '|' + e.start]);
     if (!todo.length) { if (fresh && S.profile === 'eniram' && ['accueil', 'prestations'].includes(S.tab)) render(); return; }
@@ -524,7 +524,7 @@ async function loadIA() {
     if (!r.ok) { S.iaErr = j.error || 'IA indisponible'; return; }
     if (!j.configured) { S.iaOff = true; return; }
     j.results.forEach(x => { S.ia[x.id] = x; });
-    const keep = Object.fromEntries(Object.entries(S.ia).slice(-120)); S.ia = keep; lsSet('eb_ia2', JSON.stringify(keep));
+    const keep = Object.fromEntries(Object.entries(S.ia).slice(-120)); S.ia = keep; lsSet('eb_ia3', JSON.stringify(keep));
     if (S.profile === 'eniram' && ['accueil', 'prestations'].includes(S.tab)) render();
   } catch (e) { S.iaErr = 'IA indisponible'; }
 }
@@ -579,7 +579,7 @@ function clientes() {
 
 const relDay = d => { const t = iso(new Date()), x = iso(d); return x === t ? 'Aujourd\'hui' : x === addDays(t, 1) ? 'Demain' : jFR(d); };
 const PRESTA_RE = /lash|cils|sourcil|brow|teinture|botox|baddie|that girl|clean girl|combo|restructur|formation|korean|mod[eè]le/i;
-const rdvOk = e => { if (e.allDay) return false; if (JSON.parse(lsGet('eb_ign') || '[]').includes(e.title + '|' + e.start)) return false; const x = (S.ia || {})[e.title + '|' + e.start]; return !(x && x.prestation === false && !PRESTA_RE.test(e.title + ' ' + (e.desc || ''))); };
+const rdvOk = e => { if (e.allDay) return false; if (JSON.parse(lsGet('eb_ign') || '[]').includes(e.title + '|' + e.start)) return false; const x = (S.ia || {})[e.title + '|' + e.start]; return PRESTA_RE.test(e.title + ' ' + (e.desc || '')) && !(x && x.prestation === false); };
 const rdvList = () => { const A = S.agenda; if (!A || A.error || !A.configured) return null; const now = Date.now(); return A.events.filter(e => new Date(e.end).getTime() >= now && rdvOk(e)); };
 const rdvDone = () => { const A = S.agenda; if (!A || A.error || !A.configured) return []; const now = Date.now(); return A.events.filter(e => new Date(e.end).getTime() < now && new Date(e.start).getTime() > now - 7 * 864e5 && rdvOk(e) && !rdvInfo(e).pr).reverse(); };
 const doneHtml = () => { const ev = rdvDone(); return ev.length ? `<section><div class="sec-head"><h2>À enregistrer</h2></div>${ev.slice(0, 5).map(rdvRow).join('')}</section>` : ''; };
